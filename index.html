@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUNN on-chain bank</title>
+<meta name="description" content="Use crypto as money with BUNN">
+<link rel="icon" href="favicon.png">
+<style>
+@font-face {
+  font-family: 'Engravers Gothic';
+  src: url('fonts/EngraversGothic-Bold.woff2') format('woff2'),
+       url('fonts/EngraversGothic-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Engravers Gothic', sans-serif;
+  font-weight: 700;
+  background: #ffffff;
+  color: rgb(39, 34, 34);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════
+   Full-screen canvas (top 94vh)
+   GIF/video + logo + heading all overlap
+   ═══════════════════════════════ */
+.canvas {
+  position: relative;
+  width: 100%;
+  height: 94vh;
+  overflow: hidden;
+}
+
+/* Logo — full-width wordmark, on top of everything
+   bunn.world: container 74px tall, img 100% width, object-fit contain
+   positioned at top of page */
+.logo-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  padding: 28px 40px 0;
+}
+
+.logo-wrap img {
+  display: block;
+  width: 140px;   /* matches bunn.world visible logo size */
+  height: auto;
+  object-fit: contain;
+}
+
+/* Heading — behind video, center at ~26.5% from top
+   Desktop: 20% bigger than original (3.1vw × 1.2 = 3.72vw)
+   Always 2 lines: "USE CRYPTO" / "AS MONEY WITH BUNN" */
+.heading {
+  position: absolute;
+  top: calc(26.5% + 30px);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  text-align: center;
+  text-transform: uppercase;
+  line-height: 0.70;
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 3.72vw;
+}
+
+.heading .dim {
+  color: rgba(39, 34, 34, 0.6);
+}
+
+/* Video — fullscreen canvas, in front of heading, behind logo */
+.video-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.video-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  display: block;
+}
+
+/* ═══════════════════════════════
+   Footer (bottom 6vh)
+   bunn.world: trademark text centered
+   ═══════════════════════════════ */
+.footer-section {
+  height: 6vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: rgba(39, 34, 34, 0.5);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.footer-r {
+  font-size: 8px;
+  position: relative;
+  top: -3px;
+  margin: 0 4px 0 1px;
+}
+
+/* ═══════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════ */
+/* Tablet: 810–1198px */
+@media (min-width: 810px) and (max-width: 1198px) {
+  .heading {
+    font-size: 5.6vw; /* 4.7 × 1.2 */
+  }
+  .logo-wrap {
+    padding: 22px 30px 0;
+  }
+  .logo-wrap img {
+    width: 120px;
+  }
+}
+
+/* Mobile: ≤809px — text must stay 2 lines */
+@media (max-width: 809px) {
+  .heading {
+    font-size: 7.5vw;  /* sized so "AS MONEY WITH BUNN" fits on one line */
+    white-space: nowrap;
+  }
+  .logo-wrap {
+    padding: 16px 20px 0;
+  }
+  .logo-wrap img {
+    width: 100px;
+  }
+  .footer-section {
+    font-size: 11px;
+  }
+}
+
+/* Very small phones: ≤400px */
+@media (max-width: 400px) {
+  .heading {
+    font-size: 6.5vw;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Full-screen canvas ─── -->
+<div class="canvas">
+
+  <!-- Logo (top, above everything) -->
+  <div class="logo-wrap">
+    <img src="logo.svg" alt="BUNN" loading="eager">
+  </div>
+
+  <!-- Heading (behind video) -->
+  <div class="heading">
+    <span class="dim">USE CRYPTO</span><br>
+    <span class="dim">AS </span>MONEY<span class="dim"> WITH </span>BUNN
+  </div>
+
+  <!-- Transparent video (in front of heading, behind logo) -->
+  <div class="video-wrap">
+    <video autoplay loop muted playsinline disableRemotePlayback>
+      <source src="coins.mov" type="video/quicktime">
+      <source src="coins.webm" type="video/webm">
+    </video>
+  </div>
+
+</div>
+
+<!-- ─── Footer ─── -->
+<div class="footer-section">
+  BUNN<span class="footer-r">&reg;</span> on-chain bank. All rights reserved
+</div>
+
+</body>
+</html>
