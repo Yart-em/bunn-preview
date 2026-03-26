@@ -224,10 +224,8 @@
           video.appendChild(src);
 
           // Create the canvas that will display the video frames
-          var canvasEl = document.createElement('canvas');
-          canvasEl.width = 1920;
-          canvasEl.height = 1080;
           var wrap = document.querySelector('.video-wrap');
+          var canvasEl = document.createElement('canvas');
           wrap.appendChild(canvasEl);
 
           // Hide the native video element (keep in DOM for playback)
@@ -240,11 +238,32 @@
 
           var ctx = canvasEl.getContext('2d');
           var rafId = null;
+          var vidW = 1920, vidH = 1080;
 
+          // Resize canvas to match container and recalc cover positioning
+          function resizeCanvas() {
+            var cw = wrap.clientWidth;
+            var ch = wrap.clientHeight;
+            canvasEl.width = cw;
+            canvasEl.height = ch;
+          }
+          resizeCanvas();
+          window.addEventListener('resize', resizeCanvas);
+
+          // Draw with object-fit:cover + object-position:center bottom
           function drawLoop() {
             if (!video.paused && !video.ended) {
-              ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-              ctx.drawImage(video, 0, 0, canvasEl.width, canvasEl.height);
+              var cw = canvasEl.width;
+              var ch = canvasEl.height;
+              // Calculate cover scale
+              var scale = Math.max(cw / vidW, ch / vidH);
+              var dw = vidW * scale;
+              var dh = vidH * scale;
+              // Center horizontally, align to bottom
+              var dx = (cw - dw) / 2;
+              var dy = ch - dh; // bottom-aligned
+              ctx.clearRect(0, 0, cw, ch);
+              ctx.drawImage(video, dx, dy, dw, dh);
             }
             rafId = requestAnimationFrame(drawLoop);
           }
