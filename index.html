@@ -202,20 +202,29 @@
   </div>
 
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-          var video = document.querySelector('video');
-          if (video) {
-                video.defaultMuted = true;
-          video.muted = true;
-                video.play().catch(function() {
-                        document.addEventListener('touchstart', function handler() {
-                                  video.play();
-                                  document.removeEventListener('touchstart', handler);
-                        }, { once: true });
-                });
-          }
+    (function() {
+      var video = document.querySelector('video');
+      if (!video) return;
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (isIOS) {
+        var sources = video.querySelectorAll('source');
+        sources.forEach(function(s) { s.remove(); });
+        var src = document.createElement('source');
+        src.src = 'coins_1080.mov';
+        src.type = 'video/quicktime';
+        video.appendChild(src);
+        video.load();
+      }
+      video.defaultMuted = true;
+      video.muted = true;
+      video.play().catch(function() {
+        document.addEventListener('touchstart', function handler() {
+          video.play();
+          document.removeEventListener('touchstart', handler);
+        }, { once: true });
       });
-    </script>
+    })();
+  </script>
 
   </body>
 </html>
