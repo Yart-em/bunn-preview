@@ -4,46 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BUNN on-chain bank</title>
-  <meta name="description" content="Use crypto as money with BUNN">
-  <link rel="icon" href="favicon.png">
-  <style>
-    @font-face {
+    <meta name="description" content="Use crypto as money with BUNN">
+    <link rel="icon" href="favicon.png">
+    <style>
+      @font-face {
         font-family: 'Engravers Gothic';
         src: url('fonts/EngraversGothic-Bold.woff2') format('woff2'),
-                 url('fonts/EngraversGothic-Bold.otf') format('opentype');
+             url('fonts/EngraversGothic-Bold.otf') format('opentype');
         font-weight: 700;
         font-style: normal;
         font-display: swap;
-    }
+      }
 
-    *, *::before, *::after {
+      *, *::before, *::after {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
-    }
+      }
 
-    html, body {
+      html, body {
         height: 100%;
         overflow: hidden;
-    }
+      }
 
-    body {
+      body {
         font-family: 'Engravers Gothic', sans-serif;
         font-weight: 700;
         background: #ffffff;
-      color: rgb(39, 34, 34);
+        color: rgb(39, 34, 34);
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-    }
+      }
 
-    .canvas {
+      .canvas {
         position: relative;
         width: 100%;
         height: 94vh;
         overflow: hidden;
-    }
+      }
 
-    .logo-wrap {
+      .logo-wrap {
         position: absolute;
         top: 0;
         left: 0;
@@ -54,34 +54,34 @@
         justify-content: center;
         z-index: 20;
         padding: 28px 40px 0;
-    }
+      }
 
-    .logo-wrap img {
+      .logo-wrap img {
         display: block;
         width: 140px;
         height: auto;
         object-fit: contain;
-    }
+      }
 
-    .heading {
+      .heading {
         position: absolute;
         top: calc(26.5% + 30px);
         left: 50%;
         transform: translate(-50%, -50%);
         z-index: 2;
-    text-align: center;
+        text-align: center;
         text-transform: uppercase;
         line-height: 0.70;
         pointer-events: none;
         white-space: nowrap;
         font-size: 3.72vw;
-    }
+      }
 
-    .heading .dim {
+      .heading .dim {
         color: rgba(39, 34, 34, 0.6);
-    }
+      }
 
-    .video-wrap {
+      .video-wrap {
         position: absolute;
         top: 0;
         left: 0;
@@ -89,31 +89,32 @@
         bottom: 0;
         z-index: 5;
         pointer-events: none;
-    }
+      }
 
-    .video-wrap video {
+      .video-wrap video,
+      .video-wrap canvas {
         width: 100%;
         height: 100%;
         object-fit: cover;
         object-position: center bottom;
         display: block;
-    }
+      }
 
-    .video-wrap video::-webkit-media-controls {
+      .video-wrap video::-webkit-media-controls {
         display: none !important;
-    }
-    .video-wrap video::-webkit-media-controls-start-playback-button {
+      }
+      .video-wrap video::-webkit-media-controls-start-playback-button {
         display: none !important;
         -webkit-appearance: none;
-    }
-    .video-wrap video::-webkit-media-controls-panel {
+      }
+      .video-wrap video::-webkit-media-controls-panel {
         display: none !important;
-    }
-    .video-wrap video::-webkit-media-controls-overlay-play-button {
-      display: none !important;
-    }
+      }
+      .video-wrap video::-webkit-media-controls-overlay-play-button {
+        display: none !important;
+      }
 
-    .footer-section {
+      .footer-section {
         height: 6vh;
         display: flex;
         align-items: center;
@@ -124,108 +125,181 @@
         font-size: 13px;
         color: rgba(39, 34, 34, 0.5);
         letter-spacing: 0.06em;
-    }
+      }
 
-    .footer-r {
+      .footer-r {
         font-size: 8px;
         position: relative;
         top: -3px;
         margin: 0 4px 0 1px;
-    }
+      }
 
-    @media (min-width: 810px) and (max-width: 1198px) {
+      @media (min-width: 810px) and (max-width: 1198px) {
         .heading {
-              font-size: 5.6vw;
+          font-size: 5.6vw;
         }
         .logo-wrap {
-              padding: 22px 30px 0;
+          padding: 22px 30px 0;
         }
         .logo-wrap img {
-              width: 120px;
+          width: 120px;
         }
-    }
+      }
 
-    @media (max-width: 809px) {
+      @media (max-width: 809px) {
         .heading {
-              font-size: 7.5vw;
-              white-space: nowrap;
+          font-size: 7.5vw;
+          white-space: nowrap;
         }
         .logo-wrap {
-              padding: 16px 20px 0;
+          padding: 16px 20px 0;
         }
         .logo-wrap img {
-              width: 100px;
+          width: 100px;
         }
         .footer-section {
-              font-size: 11px;
-              position: fixed;
-              bottom: 0;
-              left: 0;
-              right: 0;
-              height: 6vh;
-              background: #ffffff;
-              z-index: 30;
+          font-size: 11px;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 6vh;
+          background: #ffffff;
+          z-index: 30;
         }
         .canvas {
-              height: 94vh;
-              margin-bottom: 6vh;
+          height: 94vh;
+          margin-bottom: 6vh;
         }
-    }
+      }
 
-    @media (max-width: 400px) {
+      @media (max-width: 400px) {
         .heading {
-              font-size: 6.5vw;
+          font-size: 6.5vw;
         }
-    }
+      }
     </style>
   </head>
   <body>
 
     <div class="canvas">
-        <div class="logo-wrap">
-              <img src="logo.svg" alt="BUNN" loading="eager">
-        </div>
-        <div class="heading">
-              <span class="dim">USE CRYPTO</span><br>
-              <span class="dim">AS </span>MONEY<span class="dim"> WITH </span>BUNN
-        </div>
-        <div class="video-wrap">
-              <video autoplay loop muted playsinline webkit-playsinline preload="auto" disableRemotePlayback>
-                      <source src="coins.mov" type='video/quicktime; codecs="hvc1"'>
-                      <source src="coins.webm" type="video/webm">
-              </video>
-        </div>
+      <div class="logo-wrap">
+        <img src="logo.svg" alt="BUNN" loading="eager">
+      </div>
+      <div class="heading">
+        <span class="dim">USE CRYPTO</span><br>
+        <span class="dim">AS </span>MONEY<span class="dim"> WITH </span>BUNN
+      </div>
+      <div class="video-wrap">
+        <video autoplay loop muted playsinline webkit-playsinline preload="auto" disableRemotePlayback>
+          <source src="coins.mov" type='video/quicktime; codecs="hvc1"'>
+          <source src="coins.webm" type="video/webm">
+        </video>
+      </div>
     </div>
 
-  <div class="footer-section">
+    <div class="footer-section">
       BUNN<span class="footer-r">&reg;</span> on-chain bank. 2026
-  </div>
+    </div>
 
     <script>
-    (function() {
-      var video = document.querySelector('video');
-      if (!video) return;
-      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      if (isIOS) {
-        var sources = video.querySelectorAll('source');
-        sources.forEach(function(s) { s.remove(); });
-        var src = document.createElement('source');
-        src.src = 'coins_1080.mov';
-        src.type = 'video/quicktime';
-        video.appendChild(src);
-        video.load();
-      }
-      video.defaultMuted = true;
-      video.muted = true;
-      video.play().catch(function() {
-        document.addEventListener('touchstart', function handler() {
-          video.play();
-          document.removeEventListener('touchstart', handler);
-        }, { once: true });
-      });
-    })();
-  </script>
+      (function() {
+        var video = document.querySelector('video');
+        if (!video) return;
+
+        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        if (isIOS) {
+          // iOS: Canvas-based rendering
+          // Video plays hidden; we draw each frame onto a canvas.
+          // This bypasses iOS Safari autoplay restriction for HEVC alpha.
+
+          // Swap to the 1080p mobile version
+          var sources = video.querySelectorAll('source');
+          sources.forEach(function(s) { s.remove(); });
+          var src = document.createElement('source');
+          src.src = 'coins_1080.mov';
+          src.type = 'video/quicktime';
+          video.appendChild(src);
+
+          // Create the canvas that will display the video frames
+          var canvasEl = document.createElement('canvas');
+          canvasEl.width = 1920;
+          canvasEl.height = 1080;
+          var wrap = document.querySelector('.video-wrap');
+          wrap.appendChild(canvasEl);
+
+          // Hide the native video element (keep in DOM for playback)
+          video.style.position = 'absolute';
+          video.style.width = '1px';
+          video.style.height = '1px';
+          video.style.opacity = '0';
+          video.style.pointerEvents = 'none';
+          video.style.zIndex = '-1';
+
+          var ctx = canvasEl.getContext('2d');
+          var rafId = null;
+
+          function drawLoop() {
+            if (!video.paused && !video.ended) {
+              ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+              ctx.drawImage(video, 0, 0, canvasEl.width, canvasEl.height);
+            }
+            rafId = requestAnimationFrame(drawLoop);
+          }
+
+          function startDrawing() {
+            if (!rafId) {
+              rafId = requestAnimationFrame(drawLoop);
+            }
+          }
+
+          function startPlayback() {
+            video.muted = true;
+            video.play().then(startDrawing).catch(function() {
+              // Autoplay blocked: start on first user interaction
+              ['touchstart', 'touchend', 'click'].forEach(function(evt) {
+                document.addEventListener(evt, function handler() {
+                  video.muted = true;
+                  video.play().then(startDrawing);
+                  document.removeEventListener(evt, handler);
+                }, { once: true, passive: true });
+              });
+            });
+          }
+
+          video.addEventListener('loadeddata', startPlayback);
+          video.load();
+
+          // Resume after tab switch
+          document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && video.paused) {
+              video.muted = true;
+              video.play().then(startDrawing);
+            }
+          });
+
+        } else {
+          // Non-iOS: native video element
+          video.defaultMuted = true;
+          video.muted = true;
+          video.play().catch(function() {
+            document.addEventListener('touchstart', function handler() {
+              video.play();
+              document.removeEventListener('touchstart', handler);
+            }, { once: true });
+          });
+
+          document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && video.paused) {
+              video.muted = true;
+              video.play();
+            }
+          });
+        }
+      })();
+    </script>
 
   </body>
 </html>
-    
