@@ -91,20 +91,12 @@
         pointer-events: none;
       }
 
-      .video-wrap video {
+      .video-wrap video,
+      .video-wrap canvas {
         width: 100%;
         height: 100%;
         object-fit: cover;
         object-position: center bottom;
-        display: block;
-      }
-
-      .video-wrap canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
         display: block;
       }
 
@@ -172,12 +164,15 @@
           left: 0;
           right: 0;
           height: 6vh;
+          height: 6dvh;
           background: #ffffff;
           z-index: 30;
         }
         .canvas {
           height: 94vh;
+          height: 94dvh;
           margin-bottom: 6vh;
+          margin-bottom: 6dvh;
         }
       }
 
@@ -219,11 +214,6 @@
                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
         if (isIOS) {
-          // iOS: Canvas-based rendering
-          // Video plays hidden; we draw each frame onto a canvas.
-          // This bypasses iOS Safari autoplay restriction for HEVC alpha.
-
-          // Swap to the 1080p mobile version
           var sources = video.querySelectorAll('source');
           sources.forEach(function(s) { s.remove(); });
           var src = document.createElement('source');
@@ -231,12 +221,16 @@
           src.type = 'video/quicktime';
           video.appendChild(src);
 
-          // Create the canvas that will display the video frames
-          var wrap = document.querySelector('.video-wrap');
           var canvasEl = document.createElement('canvas');
+          var wrap = document.querySelector('.video-wrap');
           wrap.appendChild(canvasEl);
 
-          // Hide the native video element (keep in DOM for playback)
+          canvasEl.style.position = 'absolute';
+          canvasEl.style.top = '0';
+          canvasEl.style.left = '0';
+          canvasEl.style.width = '100%';
+          canvasEl.style.height = '100%';
+
           video.style.position = 'absolute';
           video.style.width = '1px';
           video.style.height = '1px';
@@ -246,27 +240,37 @@
 
           var ctx = canvasEl.getContext('2d');
           var rafId = null;
+          var vidW = 1920, vidH = 1080;
 
-          // Match canvas pixel size to container
           function resizeCanvas() {
             var dpr = window.devicePixelRatio || 1;
-            var cw = wrap.clientWidth;
-            var ch = wrap.clientHeight;
-            canvasEl.width = cw * dpr;
-            canvasEl.height = ch * dpr;
+            var rect = wrap.getBoundingClientRect();
+            var cw = rect.width;
+            var ch = rect.height;
+            if (ch < window.innerHeight * 0.5) {
+              ch = window.innerHeight * 0.94;
+            }
+            canvasEl.width = Math.round(cw * dpr);
+            canvasEl.height = Math.round(ch * dpr);
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           }
           resizeCanvas();
           window.addEventListener('resize', resizeCanvas);
+          window.addEventListener('orientationchange', function() {
+            setTimeout(resizeCanvas, 200);
+          });
 
           function drawLoop() {
             if (!video.paused && !video.ended) {
-              var cw = wrap.clientWidth;
-              var ch = wrap.clientHeight;
-              // object-fit: cover + object-position: center bottom
-              var scale = Math.max(cw / 1920, ch / 1080);
-              var dw = 1920 * scale;
-              var dh = 1080 * scale;
+              var rect = wrap.getBoundingClientRect();
+              var cw = rect.width;
+              var ch = rect.height;
+              if (ch < window.innerHeight * 0.5) {
+                ch = window.innerHeight * 0.94;
+              }
+              var scale = Math.max(cw / vidW, ch / vidH);
+              var dw = vidW * scale;
+              var dh = vidH * scale;
               var dx = (cw - dw) / 2;
               var dy = ch - dh;
               ctx.clearRect(0, 0, cw, ch);
@@ -284,7 +288,6 @@
           function startPlayback() {
             video.muted = true;
             video.play().then(startDrawing).catch(function() {
-              // Autoplay blocked: start on first user interaction
               ['touchstart', 'touchend', 'click'].forEach(function(evt) {
                 document.addEventListener(evt, function handler() {
                   video.muted = true;
@@ -298,7 +301,6 @@
           video.addEventListener('loadeddata', startPlayback);
           video.load();
 
-          // Resume after tab switch
           document.addEventListener('visibilitychange', function() {
             if (!document.hidden && video.paused) {
               video.muted = true;
@@ -307,7 +309,6 @@
           });
 
         } else {
-          // Non-iOS: native video element
           video.defaultMuted = true;
           video.muted = true;
           video.play().catch(function() {
