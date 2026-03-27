@@ -91,11 +91,18 @@
         pointer-events: none;
       }
 
-      .video-wrap video,
-      .video-wrap canvas {
+      .video-wrap video {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        object-position: center bottom;
+        display: block;
+      }
+
+      .video-wrap canvas {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
         object-position: center bottom;
         display: block;
       }
@@ -226,6 +233,8 @@
           // Create the canvas that will display the video frames
           var wrap = document.querySelector('.video-wrap');
           var canvasEl = document.createElement('canvas');
+          canvasEl.width = 1920;
+          canvasEl.height = 1080;
           wrap.appendChild(canvasEl);
 
           // Hide the native video element (keep in DOM for playback)
@@ -238,32 +247,11 @@
 
           var ctx = canvasEl.getContext('2d');
           var rafId = null;
-          var vidW = 1920, vidH = 1080;
 
-          // Resize canvas to match container and recalc cover positioning
-          function resizeCanvas() {
-            var cw = wrap.clientWidth;
-            var ch = wrap.clientHeight;
-            canvasEl.width = cw;
-            canvasEl.height = ch;
-          }
-          resizeCanvas();
-          window.addEventListener('resize', resizeCanvas);
-
-          // Draw with object-fit:cover + object-position:center bottom
           function drawLoop() {
             if (!video.paused && !video.ended) {
-              var cw = canvasEl.width;
-              var ch = canvasEl.height;
-              // Calculate cover scale
-              var scale = Math.max(cw / vidW, ch / vidH);
-              var dw = vidW * scale;
-              var dh = vidH * scale;
-              // Center horizontally, align to bottom
-              var dx = (cw - dw) / 2;
-              var dy = ch - dh; // bottom-aligned
-              ctx.clearRect(0, 0, cw, ch);
-              ctx.drawImage(video, dx, dy, dw, dh);
+              ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+              ctx.drawImage(video, 0, 0, canvasEl.width, canvasEl.height);
             }
             rafId = requestAnimationFrame(drawLoop);
           }
