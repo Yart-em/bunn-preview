@@ -101,10 +101,10 @@
 
       .video-wrap canvas {
         position: absolute;
-        bottom: 0;
+        top: 0;
         left: 0;
         width: 100%;
-        height: auto;
+        height: 100%;
         display: block;
       }
 
@@ -234,10 +234,6 @@
           // Create the canvas that will display the video frames
           var wrap = document.querySelector('.video-wrap');
           var canvasEl = document.createElement('canvas');
-          var screenW = window.innerWidth;
-          // Keep video aspect ratio (16:9) but match screen width
-          canvasEl.width = screenW * window.devicePixelRatio;
-          canvasEl.height = Math.round(canvasEl.width * 1080 / 1920);
           wrap.appendChild(canvasEl);
 
           // Hide the native video element (keep in DOM for playback)
@@ -251,10 +247,30 @@
           var ctx = canvasEl.getContext('2d');
           var rafId = null;
 
+          // Match canvas pixel size to container
+          function resizeCanvas() {
+            var dpr = window.devicePixelRatio || 1;
+            var cw = wrap.clientWidth;
+            var ch = wrap.clientHeight;
+            canvasEl.width = cw * dpr;
+            canvasEl.height = ch * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          }
+          resizeCanvas();
+          window.addEventListener('resize', resizeCanvas);
+
           function drawLoop() {
             if (!video.paused && !video.ended) {
-              ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-              ctx.drawImage(video, 0, 0, canvasEl.width, canvasEl.height);
+              var cw = wrap.clientWidth;
+              var ch = wrap.clientHeight;
+              // object-fit: cover + object-position: center bottom
+              var scale = Math.max(cw / 1920, ch / 1080);
+              var dw = 1920 * scale;
+              var dh = 1080 * scale;
+              var dx = (cw - dw) / 2;
+              var dy = ch - dh;
+              ctx.clearRect(0, 0, cw, ch);
+              ctx.drawImage(video, dx, dy, dw, dh);
             }
             rafId = requestAnimationFrame(drawLoop);
           }
