@@ -669,6 +669,19 @@ h1 {
   height: 26px;
 }
 
+/* In the desktop layout, the bottom-right CTA s-curve notch marches
+   left as the card narrows and clips the rightmost (VARA) logo. The
+   clip clears once the card is wide enough (~card width ≥ 700px, i.e.
+   viewport ≥ ~730px); below the mobile breakpoint (≤600px) the
+   compliance block reflows to a static row and the notch is disabled.
+   So between 601–740px, drop VARA — DLD + CB still carry the trust
+   signal — rather than show it clipped. */
+@media (min-width: 601px) and (max-width: 740px) {
+  .compliance__logo--vara {
+    display: none;
+  }
+}
+
 /* Three-step subhead in ONE ROW. Layout requirements:
      • Left + right blocks sit 50 px in from the glass card's
        left + right edges. The card has hero-card__inner padding
@@ -1932,7 +1945,10 @@ html.no-glass .faq-item {
     top: 14vh;
   }
   .faq-section {
-    padding: 70px 0 80px;
+    /* Top pad pairs with .brokers-section's mobile bottom pad (50px)
+       + the faq list's ~10px lead to make the brokers→faq gap 90px —
+       matching logos→carousel. */
+    padding: 30px 0 80px;
   }
   .faq-item {
     border-radius: 20px;
@@ -2070,8 +2086,15 @@ html.no-glass .faq-item {
   }
 
   /* ── Brokers card ─────────────────────────────────────────
-     Left-aligned card content, one-row steps with arc connectors,
-     coin overlaps heading, full-width CTA at the bottom. */
+     Left-aligned card content, one-row steps, coin matches the
+     heading height at the top-right, full-width CTA at the bottom. */
+  /* Trim the section's bottom pad so the brokers→faq gap is 90px
+     (50 here + 40 faq top), matching logos→carousel. 50px keeps the
+     card's drop-shadow (0 16px 32px ≈ 48px reach) clear of the
+     section's overflow:hidden clip. */
+  .brokers-section {
+    padding-bottom: 50px;
+  }
   /* Match the brokers card width to the carousel slide (85vw). */
   .brokers-card {
     width: 85vw;
@@ -2109,10 +2132,14 @@ html.no-glass .faq-item {
   .brokers-coin {
     display: block;
     position: absolute;
-    top: -5px;
+    /* Sized so the visible coin matches the BROKERS heading height
+       (~59px caps→baseline): the box is a touch taller than the
+       heading because the coin renders inside its canvas with a
+       transparent gutter, and top:-6 centres it on the heading band. */
+    top: -6px;
     right: -8px;
-    width: 80px;
-    height: 84px;
+    width: 68px;
+    height: 72px;
     margin: 0;
     pointer-events: none;
     z-index: 2;
@@ -2177,6 +2204,10 @@ html.no-glass .faq-item {
     padding: 0 20px 15px;
     gap: 12px;
     overflow: hidden;            /* clip the shifted bg figures (no page scroll) */
+    /* Pull up into the ScrollStack's empty 50vh trailing track so the
+       cardstack→info gap reads ~90px (matching logos→carousel) instead
+       of the ~170px the long scroll tail leaves. */
+    margin-top: -80px;
   }
   .info-card {
     flex: 0 0 calc(50% - 6px);   /* two per row, original 351/414 shape */

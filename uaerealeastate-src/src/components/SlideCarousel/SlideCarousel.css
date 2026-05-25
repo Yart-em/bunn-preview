@@ -248,6 +248,11 @@
   }
   .sc-slide {
     --slide-w: 85vw;
+    /* Shift the whole text block up so the country line keeps ≥15px
+       clearance above the CTA even on 2-line-subtitle slides (e.g.
+       "FOR WEI"), where it otherwise crowds the button. Scaled with
+       the card via the same /760 ratio as the other offsets. */
+    --sc-overlay-offset-y: -40;
   }
   /* CTA = 75% of the slide width, keeping the DESKTOP aspect
      (270:56) so it's a proper pill, not a thin bar. Height = width ×
