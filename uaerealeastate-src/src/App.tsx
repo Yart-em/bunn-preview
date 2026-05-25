@@ -1456,7 +1456,13 @@ function App() {
            * — 590 px of scroll between cards in document flow,
            * cards stack at 10 % from the viewport top with a
            * 20 px offset per card, base scale 0.8. */
-          itemDistance={590}
+          /* Mobile halves the scroll distance between step cards
+             (590 → 295) so the deck advances twice as fast on phones. */
+          itemDistance={
+            typeof window !== 'undefined' && window.innerWidth <= 600
+              ? 295
+              : 590
+          }
           itemStackDistance={20}
           baseScale={0.8}
           stackPosition="10%"

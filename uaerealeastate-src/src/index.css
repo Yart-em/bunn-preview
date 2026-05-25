@@ -2188,11 +2188,11 @@ html.no-glass .faq-item {
     bottom: 15px;
   }
 
-  /* Statement text matches the cityscape heading size on mobile
-     (same clamp as .cityscape-heading), overriding the 49px set in
-     the ≤900 block above. */
+  /* Statement text on mobile: 34px initially; shrinks to 24px when the
+     BUNN statement appears (via the --shifted scale below). Overrides
+     the 49px set in the ≤900 block above. */
   .statement-heading {
-    font-size: clamp(44px, 15vw, 72px);
+    font-size: 34px;
   }
 
   /* ── Statement "how to pay" chip ──────────────────────────
@@ -2208,11 +2208,11 @@ html.no-glass .faq-item {
     bottom: -2.25px;
     height: calc(100% + 2.25px);
   }
-  /* The 67.3% heading wraps to many lines on a phone; lift it
-     further in its shifted state so the BUNN line below clears it. */
+  /* When the BUNN statement appears, shrink 34px → 24px (scale 24/34)
+     and lift so the BUNN line below clears it. */
   .statement-heading--shifted {
     transform: translate(-50%, calc(-50% - 4em - var(--unpin, 0px)))
-      scale(0.6);
+      scale(0.7059);
   }
 
   /* ── Info section → 2×2 grid ──────────────────────────────── */
