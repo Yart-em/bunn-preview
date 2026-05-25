@@ -1,6 +1,9 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
-import Globe from './components/Globe/Globe';
+// Lazy-loaded: pulls in Three.js + R3F + drei. Code-splitting it (and
+// BrokersCoin below) keeps that ~600 KB out of the initial bundle so
+// the page paints/interacts fast; the globe streams in at its 2 s mount.
+const Globe = lazy(() => import('./components/Globe/Globe'));
 import GlassSurface from './components/GlassSurface/GlassSurface';
 import BorderGlow from './components/BorderGlow/BorderGlow';
 import GlareHover from './components/GlareHover/GlareHover';
@@ -16,7 +19,7 @@ import CurvedLoop from './components/CurvedLoop/CurvedLoop';
 import SlideCarousel from './components/SlideCarousel/SlideCarousel';
 import type { SlideData } from './components/SlideCarousel/SlideCarousel';
 import { useCardNotch } from './hooks/useCardNotch';
-import BrokersCoin from './components/BrokersCoin/BrokersCoin';
+const BrokersCoin = lazy(() => import('./components/BrokersCoin/BrokersCoin'));
 import CityScape from './components/CityScape/CityScape';
 import ContactPopup from './components/ContactPopup/ContactPopup';
 import { getLenis } from './lib/lenis';
@@ -286,35 +289,35 @@ const CAROUSEL_SLIDES: SlideData[] = [
     subtitle:
       'A 2.3% FX spread plus a fresh source-of-funds review',
     country: 'Portugal',
-    image: '/uaerealeastate/rotator/sofia.png',
+    image: '/uaerealeastate/rotator/sofia.jpg',
   },
   {
     label: 'FOR DMITRY',
     subtitle:
       "Passport triggers a 3–6-week manual sanctions review at his Cyprus bank",
     country: 'Russia with Cyprus resi',
-    image: '/uaerealeastate/rotator/dmitry.png',
+    image: '/uaerealeastate/rotator/dmitry.jpg',
   },
   {
     label: 'FOR ARJUN',
     subtitle:
       "RBI’s LRS caps at $250,000 and loses 20% TCS above ₹10 lakh",
     country: 'India',
-    image: '/uaerealeastate/rotator/arjun.png',
+    image: '/uaerealeastate/rotator/arjun.jpg',
   },
   {
     label: 'FOR WEI',
     subtitle:
       'SAFE caps him at $50,000 a year and bars property abroad as an approved purpose',
     country: 'China',
-    image: '/uaerealeastate/rotator/wei.png',
+    image: '/uaerealeastate/rotator/wei.jpg',
   },
   {
     label: 'FOR HASSAN',
     subtitle:
       'Bank queueing outbound real-estate transfers 30 to 60 days',
     country: 'Egypt',
-    image: '/uaerealeastate/rotator/hassan.png',
+    image: '/uaerealeastate/rotator/hassan.jpg',
   },
 ];
 
@@ -1219,15 +1222,17 @@ function App() {
           ref={globeWrapperRef}
         >
           {globeReady && (
-            <Globe
-              sphereYOffset={sphereYOffset}
-              sphereScale={sphereScale}
-              cardsVisible={isLocked}
-              cardSizePct={cardSizePct}
-              dissolveProgress={dissolveProgress}
-              preLockProgress={preLockProgress}
-              dotSize={dotSize}
-            />
+            <Suspense fallback={null}>
+              <Globe
+                sphereYOffset={sphereYOffset}
+                sphereScale={sphereScale}
+                cardsVisible={isLocked}
+                cardSizePct={cardSizePct}
+                dissolveProgress={dissolveProgress}
+                preLockProgress={preLockProgress}
+                dotSize={dotSize}
+              />
+            </Suspense>
           )}
         </div>
 
@@ -1826,8 +1831,11 @@ function App() {
                   </p>
                 </div>
                 {/* 3D coin — same CylinderGeometry + canvas textures
-                    as globe TravelingDots, spinning in its own Canvas */}
-                <BrokersCoin />
+                    as globe TravelingDots, spinning in its own Canvas.
+                    Lazy (Three.js) so it's out of the initial bundle. */}
+                <Suspense fallback={null}>
+                  <BrokersCoin />
+                </Suspense>
               </div>
 
               {/* Three broker steps + arc connectors (mobile) */}

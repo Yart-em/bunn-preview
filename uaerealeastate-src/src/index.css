@@ -1,19 +1,16 @@
-/* Self-host Engravers Gothic. The .woff2 file is the modern format
-   loaded by every current browser; .otf is the fallback for very
-   old engines. font-display: swap → Satoshi shows immediately and
-   is replaced once the file lands. */
+/* Self-host Engravers Gothic as woff2 (supported by every browser we
+   target, incl. iOS Safari). font-display: swap → Satoshi shows
+   immediately and is replaced once the file lands. */
 @font-face {
   font-family: 'Engravers Gothic';
-  src: url('/uaerealeastate/fonts/EngraversGothicBT-Regular.woff2') format('woff2'),
-       url('/uaerealeastate/fonts/EngraversGothicBT-Regular.otf') format('opentype');
+  src: url('/uaerealeastate/fonts/EngraversGothicBT-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Engravers Gothic';
-  src: url('/uaerealeastate/fonts/EngraversGothicBT-Bold.woff2') format('woff2'),
-       url('/uaerealeastate/fonts/EngraversGothicBT-Bold.otf') format('opentype');
+  src: url('/uaerealeastate/fonts/EngraversGothicBT-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -1419,7 +1416,6 @@ h1 {
   left: 0;
   width: 100%;
   height: 130%;
-  background: url('/uaerealeastate/photos/couple-portrait.png') center / cover no-repeat;
   will-change: transform;
 }
 

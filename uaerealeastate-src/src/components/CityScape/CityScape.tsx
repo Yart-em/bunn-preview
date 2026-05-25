@@ -139,7 +139,10 @@ export default function CityScape() {
      * canvas so the finer grid renders as smaller dots, not chunks. */
     const scale = canvasW / src.width;
     const offsetY = Math.max(0, canvasH - src.height * scale);
-    const SRC_STEP = 8;
+    /* Source PNG was downscaled 4× (3520→880 px) for payload; SRC_STEP
+     * goes 8→2 to keep the SAME sample grid (same dot count, world
+     * positions, and radius — all relative to src.width). */
+    const SRC_STEP = 2;
     dotRadiusRef.current = Math.max(0.6, SRC_STEP * scale * 0.53);
     for (let sy = 0; sy < src.height; sy += SRC_STEP) {
       for (let sx = 0; sx < src.width; sx += SRC_STEP) {
