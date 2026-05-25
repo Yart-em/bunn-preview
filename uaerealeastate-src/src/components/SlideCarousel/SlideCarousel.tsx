@@ -184,30 +184,28 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
   const tlRefs = useRef<(gsap.core.Timeline | null)[]>([]);
 
   /* Slide background images (~1.4 MB of JPEGs) load only once the deck
-   * nears the viewport, keeping them off the initial page load. The
-   * 600px rootMargin starts the fetch just before the carousel scrolls
-   * into view so the active slide is ready when it arrives. */
+   * nears the viewport (within 600px), keeping them off the initial
+   * page load. Uses a scroll-listener + rect check rather than
+   * IntersectionObserver — IO is flaky in some automation/preview
+   * contexts (the same reason CityScape avoids it). Lenis drives the
+   * real window scroll, so a passive 'scroll' listener catches it; the
+   * check also runs once on mount in case the deck is already near. */
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [imagesInView, setImagesInView] = useState(false);
   useEffect(() => {
     if (imagesInView) return;
     const el = wrapRef.current;
     if (!el) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      setImagesInView(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setImagesInView(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: '600px 0px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    const check = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight + 600 && rect.bottom > -600) {
+        setImagesInView(true);
+        window.removeEventListener('scroll', check);
+      }
+    };
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    return () => window.removeEventListener('scroll', check);
   }, [imagesInView]);
 
   /* ── Auto-rotate timer ──────────────────────────────────── */
