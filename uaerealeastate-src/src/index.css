@@ -2100,7 +2100,7 @@ html.no-glass .faq-item {
     width: 85vw;
   }
   .brokers-section .curved-loop-svg {
-    font-size: 40px;
+    font-size: 75px;
   }
   .brokers-card__inner {
     padding: 32px 20px 92px;
@@ -2215,10 +2215,10 @@ html.no-glass .faq-item {
   /* Keep the original block + outline shapes (no taller cards, no
      stretched 3rd figure) — fit the copy by sizing the text down. */
   .info-card__heading {
-    font-size: 9px;
+    font-size: 11.25px;        /* 25% larger than 9px */
   }
   .info-card__subtitle {
-    font-size: 8px;
+    font-size: 10px;           /* 25% larger than 8px */
     line-height: 1.35;
   }
   /* Push the scattered background figures further out so they don't
