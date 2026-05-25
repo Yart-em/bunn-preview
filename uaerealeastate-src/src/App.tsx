@@ -23,7 +23,6 @@ const BrokersCoin = lazy(() => import('./components/BrokersCoin/BrokersCoin'));
 import CityScape from './components/CityScape/CityScape';
 import ContactPopup from './components/ContactPopup/ContactPopup';
 import { getLenis } from './lib/lenis';
-import Snap from 'lenis/snap';
 
 /* ── Force scroll to top on every full page-load ──────────
  * Module-level so it runs BEFORE any React render or
@@ -424,23 +423,20 @@ function App() {
     return () => clearTimeout(t);
   }, []);
 
-  /* ── Smooth-scroll snap ─────────────────────────────────────
-   * Lenis (the shared app instance) already smooths the wheel/touch
-   * scroll. Here we add the snap addon so each block "clips" to the
-   * top of the viewport and reads as focused. It's PROXIMITY (not
-   * mandatory): a block only snaps once the user settles near its
-   * edge, so the hero's scroll-driven globe + statement choreography
-   * keeps its continuous scroll (the hero is a snap point only at the
-   * very top). */
+  /* ── Directional "ease into focus" (replaces the hard snap) ──
+   * The old proximity Snap pulled the scroll to the NEAREST block
+   * edge — which yanked the view BACKWARD whenever you'd scrolled a
+   * little past a section ("jump back"). Instead, when the user
+   * settles after a scroll gesture, we gently ease to the upcoming
+   * block edge IN THE DIRECTION they were already scrolling (never
+   * the opposite), so each block slides into focus and the scroll
+   * never jumps back. Each ease is "armed" by a real wheel/touch/key
+   * gesture, so it fires once per gesture and never chains from one
+   * anchor to the next on its own (and the hero's scroll-driven globe
+   * keeps its free, continuous scroll). */
   useEffect(() => {
     const lenis = getLenis();
-    const snap = new Snap(lenis, {
-      type: 'proximity',
-      lerp: 0.1,
-      duration: 0.8,
-    });
-    const removers: Array<() => void> = [];
-    [
+    const sels = [
       '.hero',
       '.how-section',
       '.info-section',
@@ -448,31 +444,120 @@ function App() {
       '.carousel-section',
       '.brokers-section',
       '.faq-section',
-    ].forEach((sel) => {
-      const el = document.querySelector<HTMLElement>(sel);
-      if (el) removers.push(snap.addElement(el, { align: 'start' }));
-    });
-    /* Last block = CityScape + the site footer below it. On desktop the
-     * cityscape card + footer are taller than the viewport, so snapping
-     * the cityscape to its START pulls the view UP and hides the footer.
-     * Instead, snap the FOOTER to the viewport BOTTOM (align: 'end') so
-     * the block settles DOWNWARD and the whole cityscape+footer is in
-     * view. On phones the two already fit one screen, so keep the
-     * cityscape 'start' snap there. */
+    ];
     const isDesktop =
       typeof window !== 'undefined' && window.innerWidth > 600;
-    if (isDesktop) {
-      const footer = document.querySelector<HTMLElement>('.site-footer');
-      if (footer) removers.push(snap.addElement(footer, { align: 'end' }));
-    } else {
-      const cityscape =
-        document.querySelector<HTMLElement>('.cityscape-section');
-      if (cityscape)
-        removers.push(snap.addElement(cityscape, { align: 'start' }));
-    }
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    /* Absolute scroll target for each block edge, recomputed live
+     * (rect + current scroll) so transforms / layout shifts never
+     * desync the anchors. Desktop eases the footer's BOTTOM to the
+     * viewport bottom (so the cityscape + footer sit fully in view);
+     * mobile eases the cityscape top — matching the old align logic. */
+    const getTargets = () => {
+      const cur = lenis.scroll;
+      const arr: number[] = [];
+      sels.forEach((s) => {
+        const el = document.querySelector<HTMLElement>(s);
+        if (el) arr.push(el.getBoundingClientRect().top + cur);
+      });
+      if (isDesktop) {
+        const f = document.querySelector<HTMLElement>('.site-footer');
+        if (f)
+          arr.push(
+            f.getBoundingClientRect().bottom + cur - window.innerHeight,
+          );
+      } else {
+        const cs = document.querySelector<HTMLElement>('.cityscape-section');
+        if (cs) arr.push(cs.getBoundingClientRect().top + cur);
+      }
+      return arr.map((v) => Math.max(0, Math.round(v))).sort((a, b) => a - b);
+    };
+
+    let armed = false;
+    let lastDir = 0;
+    let prev = lenis.scroll;
+    let stopTimer = 0;
+    let safety = 0;
+    let snapping = false;
+
+    const arm = () => {
+      armed = true;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (
+        ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', ' ', 'Home', 'End'].includes(
+          e.key,
+        )
+      )
+        armed = true;
+    };
+    window.addEventListener('wheel', arm, { passive: true });
+    window.addEventListener('touchmove', arm, { passive: true });
+    window.addEventListener('keydown', onKey);
+
+    const trySnap = () => {
+      if (!armed || snapping || lastDir === 0) return;
+      armed = false; // consume this gesture — never chain to the next anchor
+      const cur = lenis.scroll;
+      const threshold = window.innerHeight * 0.4;
+      const targets = getTargets();
+      let target: number | null = null;
+      if (lastDir > 0) {
+        // scrolling DOWN → only the nearest edge BELOW, within reach
+        for (const a of targets) {
+          const gap = a - cur;
+          if (gap > 8 && gap <= threshold) {
+            target = a;
+            break;
+          }
+        }
+      } else {
+        // scrolling UP → only the nearest edge ABOVE, within reach
+        for (let i = targets.length - 1; i >= 0; i--) {
+          const gap = cur - targets[i];
+          if (gap > 8 && gap <= threshold) {
+            target = targets[i];
+            break;
+          }
+        }
+      }
+      if (target == null) return;
+      snapping = true;
+      clearTimeout(safety);
+      safety = window.setTimeout(() => {
+        snapping = false;
+      }, 1500);
+      lenis.scrollTo(target, {
+        duration: 1.1,
+        easing: easeOut,
+        lock: false,
+        onComplete: () => {
+          clearTimeout(safety);
+          snapping = false;
+          prev = lenis.scroll;
+        },
+      });
+    };
+
+    const onScroll = () => {
+      const cur = lenis.scroll;
+      const d = cur - prev;
+      if (Math.abs(d) > 0.3) lastDir = Math.sign(d);
+      prev = cur;
+      if (snapping) return;
+      clearTimeout(stopTimer);
+      stopTimer = window.setTimeout(trySnap, 160);
+    };
+
+    lenis.on('scroll', onScroll);
     return () => {
-      removers.forEach((remove) => remove());
-      snap.destroy();
+      lenis.off('scroll', onScroll);
+      window.removeEventListener('wheel', arm);
+      window.removeEventListener('touchmove', arm);
+      window.removeEventListener('keydown', onKey);
+      clearTimeout(stopTimer);
+      clearTimeout(safety);
     };
   }, []);
 
