@@ -1,0 +1,204 @@
+/* ── CityScape section — gather-into-Dubai dot illustration ── */
+
+.cityscape-section {
+  position: relative;
+  width: 100%;
+  background: var(--bg);
+  /* 200px gap from the FAQ above (tuned so the heading lands
+     200px below the last FAQ card), 15px L/R, 50px at the
+     bottom. The big top gap pushes the whole picture much
+     lower down the page. */
+  padding: 185px 15px 0;
+  box-sizing: border-box;
+}
+
+/* Heading + button + subtitle flow at the TOP of the card (the
+   dot picture is absolutely positioned over the whole card).
+   The heading is LAYERED UNDER the illustration (z 1) while the
+   button + subtitle sit OVER it (z 3) — z-index lets in-flow
+   siblings paint on different sides of the absolute dots, so the
+   button can hug the heading with a real margin yet still render
+   in front. 128px caps Engravers scaled to --cs-w (128/760). */
+.cityscape-heading {
+  position: relative;              /* in flow; positioned for z-index */
+  z-index: 2;                      /* ON TOP of the dot illustration (z 1) */
+  width: var(--cs-w);
+  margin: 0;
+  text-align: center;
+  /* BlurText renders the heading as a flex-wrap row of word
+     spans — centre them so the wrapped lines stay centred. */
+  justify-content: center;
+  font-family: 'Engravers Gothic', serif;
+  font-weight: 700;
+  font-size: max(10px, calc(var(--cs-w) * 128 / 760));
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--ink);
+  /* Trim line box to glyph edges so the big caps sit tight and
+     the heading's bottom edge is the last line's baseline. */
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  pointer-events: none;
+}
+
+/* Button + subtitle, in flow directly under the heading. The
+   margin-top equals the heading's inter-line gap (line-height −
+   cap-height = (1.05 − 0.541) × heading-font ≈ cs-w × 65/760),
+   so the space between the heading and the button matches the
+   space between the heading's own lines. */
+.cityscape-overlay {
+  position: relative;
+  z-index: 3;                      /* over the dots (z 2) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;                       /* 10px between button + subtitle */
+  margin-top: calc(var(--cs-w) * 65 / 760);
+  pointer-events: none;            /* clicks pass through except button */
+  /* The overlay is a plain layout container — it deliberately carries
+     NO opacity/filter/transform of its own. Any of those would create
+     a "backdrop root" that stops the glass CTA inside from sampling
+     the dots behind it. The blur-fade-in entrance lives on the
+     children (glass pill + caption) instead. */
+}
+
+/* Blur-fade-in entrance — applied to the glass pill + caption
+   INDIVIDUALLY (not the overlay) so the overlay stays backdrop-root
+   free and the glass can frost the dots behind it. Mirrors BlurText's
+   keyframes (blur 10→0, opacity 0→1, slide down from −y). */
+.cityscape-overlay--in .cityscape-cta-glass {
+  animation: cityscape-blur-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 1.1s both;
+}
+.cityscape-overlay--in .cityscape-caption {
+  animation: cityscape-blur-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 1.25s both;
+}
+
+@keyframes cityscape-blur-in {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(-40px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+/* Pink liquid-glass CTA — the frosted GlassSurface (same backdrop
+   blur treatment as the hero card) tinted brand pink (#FF9BB4) at
+   50%. Sized to the pill; hidden until the entrance animation above
+   reveals it. */
+.cityscape-cta-glass.glass-surface {
+  width: 270px;
+  height: 56px;
+  background-color: rgba(255, 155, 180, 0.5);
+  pointer-events: auto;
+  opacity: 0;                      /* revealed by --in animation */
+}
+
+/* BorderGlow fills the glass at a transparent fill (set in JSX) so
+   the frosted glass shows through; it still supplies the hover
+   edge-glow + glare. Strip its own border + base shadow — the glass
+   provides the surface + bevel. */
+.border-glow-card.cityscape-cta-glow {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+/* White glow + mesh layers must paint normally over the image. */
+.border-glow-card.cityscape-cta-glow > .edge-light,
+.border-glow-card.cityscape-cta-glow::after {
+  mix-blend-mode: normal;
+}
+
+/* Button label + arrow render BLACK (overrides .cta-fab's #fff). */
+.border-glow-card.cityscape-cta-glow .cta-fab {
+  color: #000;
+}
+
+/* Subtitle — Satoshi 16px regular, dark so it reads on the
+   light dotted cityscape. 10px below the button via overlay gap.
+   Hidden until the entrance animation reveals it. */
+.cityscape-caption {
+  margin: 0;
+  font-family: 'Satoshi', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(10px, 1.11vw, 16px);
+  line-height: 1.4;
+  color: var(--ink);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;                      /* revealed by --in animation */
+}
+
+/* The card is the rounded clipping container. The dot picture
+   (canvas + photo) is absolutely positioned to fill it, while
+   the heading + button + subtitle flow from the TOP. --cs-w
+   (rotator card-width ladder) lives here so the heading and the
+   button's gap both scale off it. */
+.cityscape-card {
+  --cs-w: min(760px, 56vw);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  aspect-ratio: 600 / 310;
+  border-radius: 35px;
+  overflow: hidden;
+}
+
+/* Dot canvas — the illustration itself (gathered dots). Sits at
+   the bottom of the stack; the heading + button paint over it. */
+.cityscape-dots {
+  position: absolute;
+  inset: 0;
+  display: block;
+  z-index: 1;
+}
+
+@media (max-width: 900px) {
+  .cityscape-section {
+    padding: 12px 12px 40px;
+  }
+  .cityscape-card {
+    border-radius: 28px;
+  }
+  /* Match the rotator card's width ladder. */
+  .cityscape-card {
+    --cs-w: min(760px, 72vw);
+  }
+}
+
+@media (max-width: 600px) {
+  /* Cityscape + footer fill exactly one screen (footer ≈ 46px). The
+     card grows to fill the section so the big heading + CTA sit over
+     the dotted skyline. */
+  .cityscape-section {
+    min-height: calc(100svh - 46px);
+    padding: 10px 10px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .cityscape-card {
+    border-radius: 20px;
+    --cs-w: 85vw;
+    aspect-ratio: auto;          /* fill the section height instead */
+    flex: 1;
+    justify-content: center;
+  }
+  /* Heading matches the brokers heading size. */
+  .cityscape-heading {
+    font-size: clamp(44px, 15vw, 72px);
+  }
+  .cityscape-overlay {
+    margin-top: 20px;
+  }
+}

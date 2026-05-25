@@ -1,0 +1,289 @@
+/* ── SlideCarousel — 3-D rotating card deck ──────────────── */
+
+.sc-wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 100px 0 80px;
+  /* Bottom gradient blends into the brokers section's pink wash
+   * so the colour transition doesn't feel cut at the boundary. */
+  background: transparent;
+  /* No overflow clip — side slides peek beyond the edges;
+   * their opacity fades to 0 at abs offset > 2 so nothing
+   * escapes visually. */
+}
+
+/* The 3-D stage — full width, the perspective container.
+ * Each slide is centred inside via left: 50% + negative margin. */
+.sc-stage {
+  position: relative;
+  width: 100%;
+  height: 0;
+  /* padding-bottom = slide aspect ratio × (slideWidth / 100vw) × 100
+   * but we'll use a fixed-ish height instead */
+  padding-bottom: min(483px, 40vw);
+  margin: 0 auto;
+  perspective: 1800px;
+  perspective-origin: 50% 45%;
+}
+
+/* ── Individual slide ──────────────────────────────────────── */
+.sc-slide {
+  --slide-w: min(760px, 56vw);
+  position: absolute;
+  width: var(--slide-w);
+  aspect-ratio: 760 / 483;
+  top: 0;
+  left: 50%;
+  margin-left: calc(var(--slide-w) / -2);      /* centre the slide */
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+              filter 0.7s ease,
+              opacity 0.7s ease;
+  transform-style: preserve-3d;
+  will-change: transform, filter, opacity;
+  pointer-events: none;
+}
+
+.sc-slide--active {
+  pointer-events: auto;
+}
+
+/* ── SVG shape (image + S-curve clip) ──────────────────────── */
+.sc-shape {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;               /* SVG path handles the rounding */
+  overflow: visible;
+}
+
+/* ── Shadow on the active slide ──────────────────────────────
+   The drop shadow is now generated INSIDE the SVG (feDropShadow on
+   the clipped card group — see SlideCarousel.tsx) so it traces the
+   real notch silhouette and renders correctly on Safari. No CSS
+   filter here, which previously cast a rectangular shadow under the
+   card on Safari. */
+
+/* ── Dark overlay on non-active slides ─────────────────────── */
+.sc-slide:not(.sc-slide--active) .sc-overlay {
+  opacity: 0;
+}
+
+/* ── Overlay text on each slide ────────────────────────────── */
+.sc-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;                       /* full card → centre is the card centre */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;        /* centres the anchor (= the heading) */
+  /* Proportional padding (ref 32px V / 50px H at 760px card). */
+  padding: calc(var(--slide-w) * 32 / 760) calc(var(--slide-w) * 50 / 760);
+  pointer-events: none;
+  text-align: center;
+  transition: opacity 0.5s ease;
+  /* Whole-block vertical nudge (dev panel) — scaled. */
+  transform: translateY(calc(var(--slide-w) * var(--sc-overlay-offset-y, 0) / 760));
+}
+
+/* Anchor holds only the heading in-flow, so the overlay's
+   justify-content:center lands the HEADING on the card's
+   vertical midline. */
+.sc-text-anchor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* Subtitle + country stack — absolutely anchored to the
+   heading's bottom (top: 100%) so it hangs below without
+   shifting the heading off centre. margin-top is the
+   heading → subtitle gap (20 px). */
+.sc-text-below {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  /* heading → subtitle gap (25px ref), scaled with the card. */
+  margin-top: calc(var(--slide-w) * 25 / 760);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sc-label {
+  /* No bottom margin — the heading → subtitle gap is owned by
+     .sc-text-below's margin-top so it stays correct while the
+     heading is centred. */
+  margin: 0;
+  font-family: 'Engravers Gothic', 'Engravers Gothic BT', sans-serif;
+  font-weight: 700;
+  /* Proportional sizing: every text element + gap + pad is
+     expressed as (current card width ÷ 760-px design width) ×
+     its reference size, so the whole text composition scales
+     as one unit with the card and the ratios between elements
+     never change. --sc-label-size is the REFERENCE px at the
+     760-px card (set from the dev panel; default 100). */
+  font-size: max(10px, calc(var(--slide-w) * var(--sc-label-size, 100) / 760));
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+  width: 100%;                     /* fill available width within padding */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  /* Trim the line box to the glyph edges (cap height ↔ alphabetic
+     baseline) so the inter-element margins below become ACTUAL
+     visible gaps. Without this a 100px caps line reserves ~18px
+     of empty descent space, making the heading→subtitle gap look
+     far larger than the subtitle→country one. */
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  /* Per-element vertical nudge (dev panel) — also scaled. */
+  transform: translateY(calc(var(--slide-w) * var(--sc-label-offset-y, 0) / 760));
+}
+
+.sc-subtitle {
+  /* Bottom margin = subtitle → country gap (25px ref). */
+  margin: 0 0 calc(var(--slide-w) * 25 / 760);
+  font-family: 'Engravers Gothic', 'Engravers Gothic BT', sans-serif;
+  font-weight: 700;
+  font-size: max(10px, calc(var(--slide-w) * var(--sc-subtitle-size, 16) / 760));
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  color: #fff;
+  max-width: calc(var(--slide-w) * 520 / 760);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.3);
+  /* Trim line box to glyph edges so margins = real visible gaps. */
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  /* Per-element vertical nudge (dev panel) — scaled. */
+  transform: translateY(calc(var(--slide-w) * var(--sc-subtitle-offset-y, 0) / 760));
+}
+
+.sc-country {
+  margin: 0;
+  /* Engravers Gothic REGULAR (weight 400) — same display face
+     as the label/subtitle but un-bolded so the residence line
+     reads quieter. */
+  font-family: 'Engravers Gothic', 'Satoshi', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: max(10px, calc(var(--slide-w) * var(--sc-country-size, 16) / 760));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.25);
+  /* Trim line box to glyph edges so margins = real visible gaps. */
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  /* Per-element vertical nudge (dev panel) — scaled. */
+  transform: translateY(calc(var(--slide-w) * var(--sc-country-offset-y, 0) / 760));
+}
+
+/* ── CTA button at the bottom (inside the notch) ──────────── */
+/* Centering shim — full-width flex container so the inner
+ * .sc-btn-wrap can be centred without relying on left: 50% +
+ * translateX(-50%) which breaks under 3D perspective. */
+.sc-btn-dock {
+  position: absolute;
+  bottom: 3.106%;                  /* 15 / 483 — scales with card height */
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.sc-btn-wrap {
+  opacity: 0;
+  pointer-events: auto;
+  will-change: transform, opacity;
+}
+
+/* ── BorderGlow wrapper — proportional to card so 5 px
+   SVG-space gaps are maintained at every viewport.
+   270 / 760 = 0.35526,  56 / 760 = 0.07368              ── */
+.border-glow-card.sc-cta-glow-wrap {
+  width:  min(270px, calc(var(--slide-w) * 0.35526));
+  height: min(56px,  calc(var(--slide-w) * 0.07368));
+}
+
+/* Font-size scales with card: 14 / 760 = 0.01842 */
+.sc-slide .cta-fab {
+  font-size: clamp(10px, calc(var(--slide-w) * 0.01842), 14px);
+}
+
+/* Override blend modes so the white glow is visible over the
+   image-backed card (same fix as the hero pill). */
+.border-glow-card.sc-cta-glow-wrap > .edge-light,
+.border-glow-card.sc-cta-glow-wrap::after {
+  mix-blend-mode: normal;
+}
+
+/* ── Responsive ──────────────────────────────────────────────
+   Only the CARD WIDTH (--slide-w) changes per breakpoint. All
+   text sizes, gaps, and padding are expressed as a fraction of
+   --slide-w (see .sc-label / .sc-subtitle / .sc-country /
+   .sc-overlay / .sc-text-below above), so the entire text
+   composition rescales automatically and keeps its proportions
+   to itself AND to the card. No per-breakpoint font overrides
+   needed. */
+@media (max-width: 900px) {
+  .sc-slide {
+    --slide-w: min(760px, 72vw);
+  }
+}
+
+@media (max-width: 600px) {
+  .sc-wrap {
+    padding: 60px 0 50px;
+  }
+  .sc-slide {
+    --slide-w: 85vw;
+  }
+  /* CTA = 75% of the slide width, keeping the DESKTOP aspect
+     (270:56) so it's a proper pill, not a thin bar. Height = width ×
+     56/270. The notch (SlideCarousel.tsx) is rebuilt deep for this
+     button, and the dock lets it overhang the card bottom ~15%. */
+  .border-glow-card.sc-cta-glow-wrap {
+    width: calc(var(--slide-w) * 0.75);
+    height: calc(var(--slide-w) * 0.1556); /* 0.75 × 56/270 */
+    /* Force a TRUE pill: radius = half the button height, as a fraction
+       of --slide-w, so the rendered corner radius is a CONSTANT ~59
+       viewBox units at every mobile width — exactly what buildPillNotch
+       hugs. A fixed 28px radius maps to a viewport-dependent viewBox
+       radius the notch can't follow. !important beats the inline
+       --border-radius BorderGlow sets from its prop; this also rounds
+       the glow halo to match. */
+    --border-radius: calc(var(--slide-w) * 0.0778) !important;
+  }
+  /* The visible dark pill is .cta-fab, but its base style pins it at a
+     FIXED 270×56 bottom-right of the wrap — so on mobile it neither
+     fills nor scales with the 75%-wide wrap. Make it fill the wrap as a
+     true pill so the visible button is exactly the wrap size (570×118
+     viewBox) that the notch is built to hug. */
+  .sc-slide .cta-fab {
+    inset: 0;
+    width: auto;
+    height: auto;
+    border-radius: calc(var(--slide-w) * 0.0778);
+    justify-content: space-between;
+    font-size: clamp(11px, calc(var(--slide-w) * 0.042), 15px);
+  }
+  /* Drop the button ~15% of its height below the card bottom edge so
+     the smooth deep notch (floorY 368) hugs the in-card 85% with ~5
+     viewBox-units of clearance. -1.6% of the 483-tall card places the
+     button bottom ~18 viewBox-units below the card edge (= 15% of the
+     118-unit-tall button). */
+  .sc-btn-dock {
+    bottom: -1.6%;
+  }
+}

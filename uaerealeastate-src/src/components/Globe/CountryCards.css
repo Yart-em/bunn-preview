@@ -1,0 +1,63 @@
+/* Country cards — HTML overlays positioned at country lat/lon on
+   the globe.
+
+   Glass surface (borderRadius, padding, white tint, bevel
+   highlights, drop shadow, backdrop-filter displacement) is
+   inherited 1:1 from the hero card via <GlassSurface>.
+
+   Typography is the card's OWN — readable body copy with a
+   bold uppercase country name on top of a regular sans-serif
+   body. Not the uppercase/600/letter-spaced subhead style. */
+
+.country-card {
+  pointer-events: none;
+  user-select: none;
+}
+
+.country-card__body {
+  width: 100%;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+}
+
+.country-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.country-card__flag {
+  width: 36px;
+  height: 27px;
+  border-radius: 5px;
+  object-fit: cover;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.country-card__name {
+  font-family:
+    'Engravers Gothic',
+    'Engravers Gothic BT',
+    'Satoshi',
+    sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ink, #0e0e10);
+  text-transform: uppercase;
+}
+
+.country-card__text {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink, #272727);
+  font-weight: 400;
+}

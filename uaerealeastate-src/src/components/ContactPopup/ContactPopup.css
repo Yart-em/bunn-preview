@@ -1,0 +1,263 @@
+/* ── ContactPopup — StaggeredMenu-style slide-in (90 vw) ───── */
+
+.contact-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;                  /* above everything, incl. the dev panel */
+  pointer-events: none;            /* transparent to the page when closed */
+  overflow: hidden;
+}
+.contact-popup[data-open] {
+  pointer-events: auto;
+}
+
+/* Dim/click-away backdrop over the uncovered 10%. */
+.contact-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 14, 16, 0.45);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.contact-popup[data-open] .contact-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Staggered colour underlay layers — sit behind the panel,
+   same 90 vw width so they peek as the panel sweeps in. */
+.contact-prelayers {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 90vw;
+  pointer-events: none;
+  z-index: 1001;
+}
+.contact-prelayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The white form panel — 90 vw, anchored right. */
+.contact-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 90vw;
+  height: 100%;
+  background: #fff;
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(32px, 6vw, 96px) clamp(24px, 7vw, 120px);
+  overflow-y: auto;
+  pointer-events: auto;
+  box-shadow: -30px 0 80px -40px rgba(0, 0, 0, 0.45);
+}
+
+.contact-close {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line, #ececef);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink, #0e0e10);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.contact-close:hover {
+  background: var(--ink, #0e0e10);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+.contact-panel-inner {
+  width: 100%;
+  max-width: 620px;
+  margin: auto;                    /* centre the form block both axes */
+}
+
+/* Heading — Engravers Gothic bold, uppercase. */
+.contact-heading {
+  margin: 0 0 clamp(28px, 4vw, 48px);
+  font-family: 'Engravers Gothic', serif;
+  font-weight: 700;
+  font-size: clamp(10px, 5vw, 72px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--ink, #0e0e10);
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Text inputs — clean underline style. */
+.contact-input {
+  width: 100%;
+  /* Strip native input chrome so the underline is a straight line with
+     square ends (iOS Safari otherwise rounds the field corners). */
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  border-bottom: 1.5px solid var(--line, #ececef);
+  border-radius: 0;
+  background: transparent;
+  padding: 14px 2px;
+  font-family: 'Satoshi', system-ui, sans-serif;
+  /* Min 16px so iOS Safari doesn't auto-zoom when a field is tapped. */
+  font-size: clamp(16px, 1.25vw, 18px);
+  font-weight: 400;
+  color: var(--ink, #0e0e10);
+  transition: border-color 0.25s ease;
+}
+.contact-input::placeholder {
+  color: var(--ink-faint, #8a8a93);
+}
+.contact-input:focus {
+  outline: none;
+  /* Brand pink underline while the field is active. */
+  border-bottom-color: #ff9bb4;
+}
+
+/* Developer / Broker checkmark toggle. */
+.contact-role {
+  display: flex;
+  gap: 14px;
+  margin: 4px 0;
+}
+.contact-role-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border: 1.5px solid var(--line, #ececef);
+  border-radius: 999px;
+  background: #fff;
+  font-family: 'Satoshi', system-ui, sans-serif;
+  font-size: clamp(10px, 1.11vw, 16px);
+  font-weight: 500;
+  color: var(--ink, #0e0e10);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.contact-role-opt .contact-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--line, #ececef);
+  border-radius: 6px;
+  color: #fff;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.contact-role-opt .contact-check svg {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.contact-role-opt.is-on {
+  border-color: var(--accent, #ff1f8f);
+}
+.contact-role-opt.is-on .contact-check {
+  background: var(--accent, #ff1f8f);
+  border-color: var(--accent, #ff1f8f);
+}
+.contact-role-opt.is-on .contact-check svg {
+  opacity: 1;
+}
+
+/* Phone — dial-code list + number. */
+.contact-phone {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+.contact-phone-code {
+  flex: 0 0 auto;
+  /* Match the text inputs: straight, square underline (no native
+     rounding). appearance:none hides the built-in select arrow, so a
+     custom chevron is drawn on the right. */
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  border-bottom: 1.5px solid var(--line, #ececef);
+  border-radius: 0;
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%230e0e10' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 2px center;
+  padding: 14px 18px 14px 2px;
+  font-family: 'Satoshi', system-ui, sans-serif;
+  /* Min 16px so iOS Safari doesn't auto-zoom when a field is tapped. */
+  font-size: clamp(16px, 1.25vw, 18px);
+  color: var(--ink, #0e0e10);
+  cursor: pointer;
+}
+.contact-phone-code:focus {
+  outline: none;
+  border-bottom-color: #ff9bb4;
+}
+.contact-phone-num {
+  flex: 1 1 auto;
+}
+
+/* Submit button — same pink BorderGlow pill as the last block. */
+.contact-submit {
+  margin-top: clamp(20px, 3vw, 36px);
+}
+/* In-form override: not absolutely-positioned like the cityscape
+   slot; sits inline in the form flow. The BorderGlow's default
+   1px border + stacked dark drop-shadow blend into the cityscape
+   dots but read as a hard ring on the white panel — strip them so
+   the pill is clean, matching how the last-block button looks. */
+.border-glow-card.contact-cta-glow {
+  position: relative;
+  width: 270px;
+  height: 56px;
+  pointer-events: auto;
+  border: none;
+  box-shadow: none;
+}
+/* Glow layers paint normally over the white panel (the default
+   plus-lighter blend would erase the white halo on white). */
+.border-glow-card.contact-cta-glow > .edge-light,
+.border-glow-card.contact-cta-glow::after {
+  mix-blend-mode: normal;
+}
+/* Black label + arrow on the pink fill (overrides .cta-fab's #fff). */
+.border-glow-card.contact-cta-glow .cta-fab {
+  color: #000;
+}
+
+@media (max-width: 1024px) {
+  .contact-panel,
+  .contact-prelayers {
+    width: 100vw;                  /* full width on tablet/mobile */
+  }
+  .contact-backdrop {
+    display: none;                 /* nothing left to click away on */
+  }
+}
+
+@media (max-width: 600px) {
+  .contact-panel {
+    padding: 80px 22px 32px;
+  }
+  .contact-heading {
+    font-size: clamp(10px, 9vw, 40px);
+  }
+}

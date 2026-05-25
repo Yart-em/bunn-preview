@@ -1,0 +1,77 @@
+.glare-hover {
+  width: var(--gh-width);
+  height: var(--gh-height);
+  background: var(--gh-bg);
+  border-radius: var(--gh-br);
+  border: 1px solid var(--gh-border);
+  overflow: hidden;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.glare-hover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    var(--gh-angle),
+    hsla(0, 0%, 0%, 0) 60%,
+    var(--gh-rgba) 70%,
+    hsla(0, 0%, 0%, 0),
+    hsla(0, 0%, 0%, 0) 100%
+  );
+  transition: var(--gh-duration) ease;
+  background-size:
+    var(--gh-size) var(--gh-size),
+    100% 100%;
+  background-repeat: no-repeat;
+  background-position:
+    -100% -100%,
+    0 0;
+}
+
+.glare-hover:hover {
+  cursor: pointer;
+}
+
+.glare-hover:hover::before {
+  background-position:
+    100% 100%,
+    0 0;
+}
+
+.glare-hover--play-once::before {
+  transition: none;
+}
+
+.glare-hover--play-once:hover::before {
+  transition: var(--gh-duration) ease;
+  background-position:
+    100% 100%,
+    0 0;
+}
+
+/* Auto-trigger mode (autoInterval prop). The JS adds /
+   removes `.glare-hover--sweeping` on a timer; while it's
+   on, the gradient is at the "end" position. To prevent the
+   visible reverse sweep when the class is removed, the JS
+   briefly adds `.glare-hover--no-transition` so the snap
+   back to the start is instant. The `.glare-hover--auto`
+   hover override below disables :hover triggering while the
+   timer is owning the animation. */
+.glare-hover--auto:hover::before {
+  background-position:
+    -100% -100%,
+    0 0;
+}
+
+.glare-hover--sweeping::before {
+  background-position:
+    100% 100%,
+    0 0;
+}
+
+.glare-hover--no-transition::before {
+  transition: none;
+}

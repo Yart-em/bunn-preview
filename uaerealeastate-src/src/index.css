@@ -1,0 +1,2284 @@
+/* Self-host Engravers Gothic. The .woff2 file is the modern format
+   loaded by every current browser; .otf is the fallback for very
+   old engines. font-display: swap → Satoshi shows immediately and
+   is replaced once the file lands. */
+@font-face {
+  font-family: 'Engravers Gothic';
+  src: url('/uaerealeastate/fonts/EngraversGothicBT-Regular.woff2') format('woff2'),
+       url('/uaerealeastate/fonts/EngraversGothicBT-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Engravers Gothic';
+  src: url('/uaerealeastate/fonts/EngraversGothicBT-Bold.woff2') format('woff2'),
+       url('/uaerealeastate/fonts/EngraversGothicBT-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg: #ffffff;
+  --ink: #0e0e10;
+  --ink-soft: #4a4a52;
+  --ink-faint: #8a8a93;
+  --line: #ececef;
+  --accent: #ff1f8f;
+  --accent-soft: #ff7ab8;
+
+  /* ── Layout grid ─────────────────────────────────────────
+     One system every section aligns to. The width values below
+     preserve the original per-section tuning, so desktop layout is
+     pixel-unchanged — sections now reference these tokens instead of
+     scattered magic numbers, which makes the widths a single source
+     of truth and unifies the page gutter across the page.
+     Canonical breakpoints (CSS @media can't read custom props, so
+     these are the agreed literals used in index.css + components):
+        lg 1024px  ·  md 900px  ·  sm 600px                        */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-6: 48px;
+  --space-8: 64px;
+
+  /* Per-side page gutter on narrow screens. It only bites once a
+     section's viewport width drops below its max-width, so on desktop
+     it has no effect; below that, every section now shares one margin
+     instead of the old 24/16/32 px mix. */
+  --gutter: var(--space-2);
+
+  /* Content container max-widths, named by role. */
+  --w-text: 720px;     /* hero card + reading-width text blocks   */
+  --w-hero: 820px;     /* hero headline                           */
+  --w-content: 960px;  /* brokers card, FAQ list                  */
+  --w-wide: 1080px;    /* full-width statement headings           */
+  --w-media: 760px;    /* media-card ladder (rotator, cityscape)  */
+
+  /* Two-font system. Engravers Gothic is now self-hosted via
+     @font-face above (.woff2 + .otf in /public/fonts), so every
+     visitor — Safari included — gets the same display face. Satoshi
+     from Fontshare backs it up for any glyph not in the Engravers
+     file (e.g. lowercase or special characters); generic sans is
+     the last-resort if both web fonts fail. No Copperplate / system
+     fonts in the stack on purpose — those caused Safari to resolve
+     to a different glyph set than Chrome. */
+  font-family: 'Engravers Gothic', 'Satoshi', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+html,
+body {
+  min-height: 100%;
+  /* Never allow horizontal scroll/slide on any viewport (desktop or
+     mobile). `clip` (not `hidden`) stops the sideways scroll WITHOUT
+     turning the page into a horizontal scroll container — so Lenis
+     smooth scroll and the fixed-position hero pinning keep working and
+     vertical scrolling stays normal. Catches anything that reaches
+     past the viewport edge (carousel side slides, curved-loop marquee,
+     decorative bg figures, etc.). */
+  overflow-x: clip;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+p {
+  margin: 0;
+}
+
+.page {
+  position: relative;
+  min-height: 100vh;
+}
+
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;         /* centred logo, no nav */
+  padding: 24px 48px;
+  z-index: 4;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0)
+  );
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand__logo {
+  height: 15px;
+  width: auto;
+  display: block;
+}
+
+.nav {
+  display: flex;
+  gap: 28px;
+  font-size: clamp(10px, 0.97vw, 14px);
+  color: var(--ink-soft);
+}
+.nav a:hover {
+  color: var(--ink);
+}
+
+/* Hero stack — three layered absolutely-positioned children:
+   z=1  hero-heading  (text in clean white space at top)
+   z=2  hero-globe    (rising sphere; arcs reach up above the sphere
+                       and visually pass in front of the heading)
+   z=3  hero-card     (liquid glass under subtitle + buttons; sits in
+                       front of the globe and blurs the dots behind it) */
+/* Intro entrance animation for the hero glass card. Applied
+   directly to .glass-surface (and the CTA wrapper) — NOT to
+   the parent .hero-card — because opacity on the parent would
+   make it a backdrop root and break the glass-surface's
+   refraction. Opacity on the glass-surface itself only makes
+   that element a backdrop root for ITS children; its OWN
+   backdrop-filter still samples the parent's painted output
+   (the globe), so refraction is preserved. */
+@keyframes hero-card-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.hero-card .glass-surface,
+.hero-card .cta-fab-glow-wrap {
+  animation: hero-card-fade-in 0.6s ease-out 3s both;
+}
+
+.hero {
+  position: relative;
+  /* Cards section sits in document flow right after the hero.
+   * First card enters the viewport the same scroll-tick the
+   * text block starts moving (unpin) — zero gap.
+   *
+   * Scroll timeline (relative to the 67.3 % trigger):
+   *   •    0 px  — 67.3 % appears
+   *   •  400 px  — BUNN appears, 67.3 % shifts/shrinks
+   *   •  500 px  — Unpin starts  AND  first card enters
+   *
+   * Card enters viewport from the bottom when:
+   *   scrollTop + vh = cardDocTop = sectionTop + 20 vh
+   *   scrollTop_visible = sectionTop − 80 vh
+   *
+   * trigger = 190 vh + 585 px   (dissolveProgress reaches 0.9)
+   * unpin   = 190 vh + 1085 px  (trigger + 500)
+   * visible = 190 vh + 1085 px  (unpin + 0)
+   *
+   *   sectionTop − 80 vh = 190 vh + 1085 px
+   *   sectionTop = 270 vh + 1085 px
+   *   hero       = calc(270vh + 1085px)
+   *
+   * IMPORTANT: this only lines up when the CSS viewport unit equals
+   * the JS `window.innerHeight` the scroll machine reads. On mobile
+   * `vh` is the LARGE (toolbar-hidden) viewport while innerHeight is
+   * the CURRENT one, so a plain `vh` makes the hero too tall and the
+   * first card arrives AFTER the BUNN statement has scrolled off.
+   * `dvh` (dynamic viewport) tracks innerHeight, keeping the
+   * card-enters = unpin timing identical on mobile. (vh fallback for
+   * browsers without dvh.) */
+  min-height: calc(270vh + 1085px);
+  min-height: calc(270dvh + 1085px);
+  overflow: hidden;
+}
+
+.hero-heading {
+  position: absolute;
+  top: 16vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(var(--w-hero), calc(100% - var(--gutter) * 2));
+  text-align: center;
+  z-index: 1;
+}
+
+/* BlurText wraps each word in a flex layout — center the line(s)
+   so the heading reads centered like the rest of the hero. */
+.hero-heading > h1,
+.hero-heading > p {
+  justify-content: center;
+}
+
+/* Pre-headline above the H1 — small, uppercase, letter-spaced,
+   bold. */
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: clamp(10px, 0.83vw, 12px);
+  font-weight: 500;
+  color: var(--ink-faint);
+  margin: 0 0 18px;
+}
+
+/* Country rotator under the H1 — same font, size, and weight as the
+   H1 so the headline + rotator reads as one continuous statement. */
+.rotator {
+  /* No explicit margin-top — the H1 + rotator inherit the same
+     line-height: 1.05 so the natural inter-line gap (= line-height
+     − cap-height of one line) is exactly the same between the H1
+     lines and between the H1 and this rotator. Adding a margin
+     here put the rotator visibly farther from the H1 than the H1
+     lines were from each other; setting it to 0 lets the
+     line-height itself supply the gap. */
+  margin-top: 0;
+  font-size: clamp(10px, 3.78vw, 50px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  /* Whole rotator line — including prefix, city name, and suffix —
+     renders BOLD so it pops against the two regular-weight headline
+     lines above it. */
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: uppercase;
+  /* Plain block paragraph (NOT flex) so the prefix's trailing
+     `&nbsp;` and the suffix's leading `&nbsp;` survive as real
+     inline spaces — that gives exactly one word of padding between
+     the chip and the surrounding text. */
+  display: block;
+  /* Default: rotator stays at its parent's width with content
+     left-anchored (the inherent behaviour for inline content
+     wider than the container — Chrome anchors it to the left
+     edge). Prefix.left is then constant across every non-52
+     city swap, so the prefix doesn't move and the chip grows
+     only to the right.
+     For the "52+ countries" slide, the `.rotator--centered`
+     modifier flips the rotator to shrink-to-content + transform
+     centering so the chip grows on both sides and the prefix
+     bounces into its new left position. See App.tsx for the
+     conditional className. */
+  text-align: center;
+  white-space: nowrap;
+}
+
+.rotator--centered {
+  width: max-content;
+  max-width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Groups "IN" + the city chip + "TO PAY" so they never break apart.
+   On desktop the whole rotator is one nowrap line anyway; on mobile
+   (where .rotator switches to white-space: normal) this group wraps to
+   the next line as a single unit, so the last row reads
+   "IN <city> TO PAY". */
+.rotator-tail {
+  white-space: nowrap;
+}
+
+.rotator-prefix,
+.rotator-suffix {
+  font-weight: 700;
+}
+
+/* Both prefix and suffix are motion.span elements that get a
+   transform applied by Framer's layout animation. Inline
+   elements ignore `transform` per CSS spec, so they MUST be
+   inline-block for the tween to render at all. */
+.rotator-prefix,
+.rotator-suffix {
+  display: inline-block;
+  vertical-align: baseline;
+  will-change: transform;
+}
+
+/* The slot is the rounded gray "chip" wrapping the buyer portrait +
+   the rotating city name. Fixed 5 px padding on left / top / bottom
+   so the photo's gap from those chip edges is exactly 5 px at any
+   viewport / font size. `overflow: hidden` turns the chip into a
+   mask so the photo + city slide / blur in and out *inside* the
+   gray rectangle on every swap rather than spilling above or below. */
+/* Slot is just a positioning inline-block. The surrounding
+   `&nbsp;` characters in the prefix / suffix supply the natural
+   word-space gap on either side.
+
+   IMPORTANT: NO `overflow: hidden` here. Per CSS spec, an
+   inline-block whose overflow ≠ visible reports its bottom
+   margin edge as its baseline, NOT the baseline of its inner
+   content. The slot wraps the chip; if the slot's reported
+   baseline = its bottom edge, the chip's text ends up 10 px
+   above the surrounding text baseline (= the bug the user
+   compensated for with a +12 px translateY). With overflow
+   visible, the slot's baseline propagates from its content
+   (motion.span → chip → text-name's alphabetic baseline) and
+   the chip's text aligns with the surrounding line.
+
+   The trade-off: motion.span's swap animation can briefly
+   render outside the slot's bounds. Acceptable. */
+.rotator-slot {
+  position: relative;
+  display: inline-block;
+  vertical-align: baseline;
+  line-height: 1;
+}
+
+.rotator-word {
+  color: var(--ink);
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Gray chip carrying both the buyer photo (LEFT) and the city
+   text (RIGHT). Padding map:
+     • photo  → 5 px from chip's left, top, bottom
+     • text   → 10 px from chip's right, top, bottom
+     • photo  → 10 px gap to text
+   Chip padding is 5 px / 10 px / 5 px / 5 px so the photo (which
+   fills the chip's content height) gets 5 px around it on three
+   sides; the right side gets 10 px to leave room for the text's
+   own 10 px gap from the chip frame. The 10 px text gap from
+   chip top/bottom is achieved by making the photo frame 10 px
+   TALLER than the cap-trimmed text — both children are
+   align-items: center, so the photo fills the content area while
+   the text gets centered with 5 px above and 5 px below it
+   (= 5 px chip padding + 5 px center offset = 10 px from chip
+   top/bottom).
+   DOM order is [text, photo] so the chip's first-baseline is the
+   text baseline; flex-direction: row-reverse flips the visual
+   order to [photo, text]. */
+.rotator-name-chip {
+  /* Live-tunable Y offset driven by the dev toggle bar. */
+  transform: translateY(var(--chip-y-offset, 0));
+  /* Permanent chip frame — content swaps INSIDE. overflow: hidden
+     masks the slide-up / slide-down content animation against the
+     chip's edges. */
+  overflow: hidden;
+  display: inline-flex;
+  /* The chip's only flex child is .rotator-content (the animated
+     wrapper). flex-end keeps the content row anchored to the
+     chip's bottom (matches the previous behaviour where the
+     bottom of the text glyph sat at chip-bottom − 10 px). */
+  align-items: flex-end;
+  background: #f2f2f2;
+  border-radius: 5px;
+  padding: 0;
+  /* Horizontal breathing room between the chip and the prefix
+     / suffix text. JSX whitespace inside the surrounding
+     inline-block spans gets collapsed by the browser's text
+     normalization, so we add the spacing here via margin. */
+  margin: 0 0.25em;
+  vertical-align: baseline;
+}
+
+/* The motion-driven content row inside the chip. Carries the photo
+   and the text-name (which is now split into per-character
+   motion.spans for the RotatingText effect). align-self: baseline
+   propagates the text's baseline up to the chip. */
+.rotator-content {
+  display: inline-flex;
+  align-items: flex-end;
+  flex-direction: row-reverse;
+  align-self: baseline;
+}
+
+/* Each character of the city name is a motion.span animating
+   y: 100% → 0 → -120% with a stagger delay. inline-block so the
+   transform applies cleanly without breaking the text run. The
+   chip's `overflow: hidden` is the mask that clips the slide. */
+.rotator-name-char {
+  display: inline-block;
+  /* Avoid the implicit white-space collapsing trimming visible
+     glyph extents during the slide. */
+  white-space: pre;
+}
+
+/* Photo "canvas" frame inside the chip. Height is the chip's
+   content height (= text cap-height + 10 px so the text gets a
+   centered 5 px above + 5 px below); width is 1.5× the height
+   for a 3:2 portrait crop. The <img> inside fills via 100% +
+   object-fit. */
+.rotator-photo-frame {
+  display: inline-block;
+  flex: 0 0 auto;
+  /* em fallback for browsers without the cap unit */
+  height: calc(0.7em + 10px);
+  width: calc((0.7em + 10px) * 1.5);
+  /* modern */
+  height: calc(1cap + 10px);
+  width: calc((1cap + 10px) * 1.5);
+  border-radius: 5px;
+  overflow: hidden;
+  background: #e0e0e0;
+  /* TRBL — 5 px around the photo on every chip side it can touch.
+     LEFT: 5 px from chip's left edge. TOP / BOTTOM: 5 px from
+     chip top / bottom. RIGHT: 0 px because the gap to the text
+     is supplied entirely by the text's margin-left (10 px). Net
+     horizontal layout, photo on the LEFT (row-reverse):
+       chip-left → 5 → photo → 0 → 10 (text margin) → text → 10 → chip-right
+     Net vertical: photo content bottom = chip outer bottom − 5,
+     text content bottom (baseline) = chip outer bottom − 10. */
+  margin: 5px 0 5px 5px;
+}
+
+.rotator-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rotator-name {
+  font-weight: 700;
+  display: inline-block;
+  line-height: 1;
+  /* CRITICAL: force text-name to be a baseline-aligned flex item.
+     With chip's align-items: flex-end, both children inherit
+     flex-end. For a single-item chip (photoless "52+ countries")
+     the chip's synthesized baseline correctly comes from the only
+     item's first-baseline = text's alphabetic baseline. But for
+     a two-item chip (photo + text), browsers synthesize the chip's
+     baseline from the LAST item's edge in some implementations —
+     and the photo-frame, being an inline-block with no text
+     content, reports its baseline as its bottom margin edge,
+     pulling the chip's reported baseline DOWN by ~10 px. Setting
+     align-self: baseline here makes text-name the explicit
+     baseline-aligned item, so the chip's reported baseline is
+     ALWAYS text-name's alphabetic baseline regardless of whether
+     a photo is rendered. The chip's text now sits on the
+     surrounding text baseline in BOTH variants. */
+  align-self: baseline;
+  /* text-box-trim shrinks the element box to the visible cap-to-
+     baseline rectangle. Without it the box is taller than the
+     glyphs and the chip's measured baseline drifts off-line. */
+  text-box: trim-both cap alphabetic;
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+  padding: 0;
+  /* TRBL — 10 px on top / bottom / right; the LEFT side faces the
+     photo across the row, so margin-left: 0 keeps the gap to the
+     photo at exactly 10 px (= 0 + photo's margin-right of 0 +
+     wait: 10 px text-left would ADD; we keep 0 so the visual gap
+     comes purely from photo's 5 px on the photo side… Actually
+     the photo has margin-right: 0 in row-reverse, and the text
+     here has margin-left: 0, giving a 10 px gap from photo's
+     content right to text's content left when the chip's
+     intrinsic 10 px is supplied entirely by `gap` … on second
+     thought, the cleanest way to get a 10 px gap is to set
+     margin-left: 10px on text and margin-right: 0 on the photo,
+     which is exactly what we do below. Net horizontal layout:
+     5 px chip-left → photo → 10 px gap → text → 10 px chip-right. */
+  margin: 10px 10px 10px 10px;
+  letter-spacing: 0;
+}
+
+/* Photoless variant (e.g. "52+ countries"): the .rotator-name's
+   10 px margin-left is no longer a "gap to photo" — it just sits
+   directly against the chip's left edge, giving a symmetric
+   10 px on every side. Nothing extra needed. */
+
+/* Fallback for browsers that don't support text-box-trim (older
+   Safari < 16.4, Firefox before late-2025 builds): use a negative
+   top-margin to compensate for the font's ascent leading above the
+   caps. The values approximate Engravers Gothic's metrics — the
+   trim above does it precisely from the font's own data. */
+@supports not (text-box: trim-both cap alphabetic) {
+  .rotator-name {
+    /* Keep horizontal margins from the trimmed branch. */
+    margin: 10px 10px 10px 10px;
+    /* Compensate vertically: shave the font's ascent leading above
+       the caps by pulling the element up via a slightly tighter
+       line-height + a negative offset baked into margin-top. */
+    line-height: 1;
+  }
+}
+
+h1 {
+  font-size: clamp(10px, 3.78vw, 50px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Two-line headline — both lines render at REGULAR weight (the
+   bold accent moves down to the rotator below). */
+.hero-h1 {
+  text-transform: uppercase;
+  font-weight: 400;
+}
+.hero-h1--light,
+.hero-h1--bold {
+  font-weight: 400;
+}
+
+.accent {
+  color: var(--accent);
+}
+
+/* Globe canvas is FIXED to the viewport so it scales/positions
+   independently of page scroll. The sphere position and scale inside
+   the canvas are driven by scroll progress in JS. */
+.hero-globe {
+  /* Canvas is TALLER than the viewport so the locked / scaled-up
+     sphere never gets clipped at the bottom. 200 vh is the
+     sweet spot. */
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 200vh;
+  z-index: 2;
+  pointer-events: none;
+  /* Clip 3D-tumbling country cards / coins to the canvas bounds
+     so they don't bleed sideways past the viewport edge when
+     they fly off during the scroll-driven dissolve. */
+  overflow: hidden;
+}
+
+.hero-globe::before {
+  content: '';
+  position: absolute;
+  inset: 5%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 31, 143, 0.1) 0%,
+    rgba(255, 31, 143, 0.04) 40%,
+    rgba(255, 255, 255, 0) 75%
+  );
+  pointer-events: none;
+}
+
+/* Glass card is sticky: starts at its natural position in the hero
+   and locks to viewport top: 28vh once the user scrolls past it.
+   The globe slides under it as scroll continues. */
+.hero-card {
+  /* Plain block flow (NOT sticky). The card sits at its
+     computed marginTop on first load (so its bottom lands 50 px
+     above the viewport bottom), then scrolls naturally with
+     the page — exits the top once the user scrolls far enough,
+     freeing the globe's upper hemisphere from being covered. */
+  position: relative;
+  margin: 0 auto 0;
+  width: min(var(--w-text), calc(100% - var(--gutter) * 2));
+  z-index: 3;
+  /* Intentionally NO drop shadow. The glass surface inside has
+     a clip-path so its own box-shadow doesn't render either —
+     hero card sits flat against the globe behind it. */
+}
+
+/* Faint colour wash behind the glass card. Originally a big
+   blurry pink/purple/yellow cloud that gave the glass something
+   to refract — but it was so dominant it drowned out the globe
+   visible through the glass. Toned down to a subtle hint so the
+   Liquid Glass refraction primarily samples the globe (dots +
+   arcs + coins) behind the card. */
+.hero-card::before {
+  content: '';
+  position: absolute;
+  inset: -50% -30%;
+  background:
+    radial-gradient(
+      55% 55% at 25% 30%,
+      rgba(255, 31, 143, 0.1) 0%,
+      rgba(255, 31, 143, 0) 70%
+    ),
+    radial-gradient(
+      55% 55% at 80% 65%,
+      rgba(122, 88, 255, 0.08) 0%,
+      rgba(122, 88, 255, 0) 70%
+    );
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(36px);
+}
+
+.hero-card__inner {
+  width: 100%;
+  /* Top + left + right padding all share the same 35 px value
+     so the inset feels uniform on three sides. Bottom keeps
+     extra room for the compliance block (left) and the CTA
+     pill / s-curve notch (right) — both of which are
+     absolutely-positioned inside .hero-card. */
+  padding: 35px 35px 110px 35px;
+  text-align: center;
+  position: relative;
+}
+
+/* Compliance footer — pinned bottom-left of the glass card. Sits
+   on the opposite corner from the CTA pill so the trust signal is
+   visible while the s-curve notch wraps around the right side.
+   `left: 35px` aligns the VARA logo's left edge with the first
+   subhead step's text (which also starts at 35 px from the card
+   edge — see .hero-card__inner padding). */
+.compliance {
+  position: absolute;
+  left: 35px;
+  bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  z-index: 5;
+}
+
+.compliance__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.compliance__logos {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.compliance__logo {
+  display: block;
+  width: auto;
+  object-fit: contain;
+}
+
+.compliance__logo--dld {
+  height: 26px;
+}
+
+.compliance__logo--cb {
+  height: 30px;
+}
+
+.compliance__logo--vara {
+  height: 26px;
+}
+
+/* Three-step subhead in ONE ROW. Layout requirements:
+     • Left + right blocks sit 50 px in from the glass card's
+       left + right edges. The card has hero-card__inner padding
+       of 30 px, so this row adds an extra 20 px each side.
+     • All three text blocks have the SAME width — tuned so each
+       step's copy wraps to exactly 2 lines.
+     • Dividers sit centred between adjacent blocks.
+       (justify-content: space-between distributes the leftover
+       horizontal space equally across the 4 gaps surrounding the
+       2 dividers, which puts each divider in the middle of the
+       block-to-block gap.) */
+.subhead-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.subhead-step-item {
+  display: flex;
+  /* Width is set per-step via inline style in App.tsx — each
+     block's frame matches its widest wrapped line, so there's
+     no visible padding between the text's rightmost glyph and
+     the divider. */
+  flex: 0 0 auto;
+  min-width: 0;
+  align-items: center;
+  /* Left-align the step text within its column. */
+  justify-content: flex-start;
+}
+
+.subhead-step {
+  font-size: clamp(10px, 1.11vw, 16px);
+  line-height: 1.35;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+  /* All subtitle copy aligns LEFT inside its column. */
+  text-align: left;
+  /* Allow each block to wrap to 2-3 lines — the row keeps all 3
+     blocks side by side, dividers between them. */
+  white-space: normal;
+}
+
+.subhead-divider {
+  /* Container is 2 px tall so the pink overlay can run at
+     full thickness; the underlying black bar is half that. */
+  position: relative;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 2px;
+  background: transparent;
+  overflow: hidden;
+}
+
+/* Underlying black line — 1 px thick, vertically centred in
+   the 2 px container. */
+.subhead-divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1px;
+  background: #272727;
+}
+
+/* Pink "impulse" — a 2 px gradient bar that travels left
+   → right along each short horizontal flow-line between
+   steps. Same pink as the coins on the globe (COLOR_FLOW =
+   #FF9BAC = rgb(255, 155, 172)) so the capital-flow language
+   carries through from globe to subhead. The second divider
+   starts 1.5 s later so the pulse cascades step 1 → 2 → 3.
+   Full 2 px height — sits ON TOP of the 1 px black line so
+   when the pulse passes, it visually replaces the black. */
+.subhead-divider::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(255, 155, 172, 0) 0%,
+    rgba(255, 155, 172, 0.2) 20%,
+    rgba(255, 155, 172, 1) 100%
+  );
+  transform: translateX(-100%);
+  animation: pink-impulse 3s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+}
+
+.subhead-divider.divider-1::after {
+  animation-delay: 1.5s;
+}
+
+@keyframes pink-impulse {
+  0%   { transform: translateX(-100%); }
+  40%  { transform: translateX(0%); }
+  70%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* CTA pill — full label visible from the start. Right + bottom
+   edges sit flush with the glass card's right + bottom edges so
+   the s-curve clip-path can wrap around the full pill width. */
+.cta-fab {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 56px;
+  width: 270px;
+  padding: 0 20px;
+  border: none;                    /* reset the default <button> border */
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  text-decoration: none;
+  /* Explicit display face. <a> CTAs inherit Engravers from :root,
+     but <button> CTAs (e.g. the contact-popup submit) do NOT inherit
+     font-family — the UA stylesheet gives them their own default
+     (Arial). Declaring it here keeps every CTA, anchor or button,
+     on Engravers. */
+  font-family: 'Engravers Gothic', 'Satoshi', sans-serif;
+  font-size: clamp(10px, 0.97vw, 14px);
+  /* Bold weight on the CTA label per spec. */
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  z-index: 4;
+  box-shadow:
+    0 6px 18px -6px rgba(15, 15, 30, 0.4),
+    0 2px 6px -2px rgba(15, 15, 30, 0.2);
+  transition: transform 0.2s ease;
+}
+
+/* BorderGlow wrapper — sized to EXACTLY match the original
+   CTA pill (270×56), positioned in the same bottom-right
+   slot. Compound selector `.border-glow-card.cta-fab-
+   glow-wrap` raises specificity to 0,2,0 so it overrides
+   the `.border-glow-card { position: relative }` rule that
+   BorderGlow.css loads AFTER index.css. */
+.border-glow-card.cta-fab-glow-wrap {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 270px;
+  height: 56px;
+  z-index: 4;
+}
+
+/* BorderGlow ships with blend modes that erase WHITE on a
+   LIGHT background:
+     .edge-light → mix-blend-mode: plus-lighter  (additive)
+     ::after     → mix-blend-mode: soft-light
+   With a pink glow over light bg the additive blend brightens
+   the bg = visible halo, but a WHITE glow + light bg under
+   plus-lighter = no visible change. Scoped override to
+   `mix-blend-mode: normal` so the white halo + gradient fill
+   actually paint as a visible soft glow over the glass card. */
+.border-glow-card.cta-fab-glow-wrap > .edge-light,
+.border-glow-card.cta-fab-glow-wrap::after {
+  mix-blend-mode: normal;
+}
+
+/* GlareHover fills the BorderGlow's inner area exactly so the
+   diagonal glare sweeps across the full pill. Transparent bg
+   and border so the pill's own dark fill comes through. */
+.glare-hover.cta-fab-glare {
+  width: 100%;
+  height: 100%;
+}
+/* When the CTA pill is wrapped by BorderGlow, drop the
+   pill's own absolute positioning + background — the
+   BorderGlow wrapper above handles BOTH the pill shape and
+   the dark fill (its `--card-bg` is what produces the
+   gradient-border trick). The anchor just provides text +
+   icon + click handling, filling the wrapper. */
+.cta-fab--glow {
+  position: relative;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border-radius: inherit;
+  box-shadow: none;
+}
+
+.cta-fab__label {
+  flex: 1 1 auto;
+  margin-right: 12px;
+  pointer-events: none;
+}
+
+.cta-fab__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.cta-fab:hover {
+  transform: translateY(-1px);
+}
+
+.cta-fab:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+/* Country "why crypto" cards used to render as drei <Html>
+   overlays — that's been replaced by canvas-textured WebGL
+   meshes (CountryCards.tsx). The DOM-side CSS for those overlays
+   is gone; the cards now ship as part of the GL scene. */
+
+/* ── Statement heading ──────────────────────────────────────
+ * A fixed-position element that floats over the dissolving
+ * globe. Appears centred on screen the moment the globe is
+ * 90 % diffused, stays pinned for ≈500 px of scroll, then
+ * fades out. Not in document flow — so it can sit on top of
+ * the still-scattering canvas without pushing anything around.
+ *
+ * The block is centred horizontally and vertically via
+ * position:fixed + translate(-50%,-50%). Text inside reads
+ * left-aligned (per spec). Bold (800), full-ink color. */
+.statement-heading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  /* `--unpin` is set inline from JS once the user scrolls past
+   * the unpin threshold (300 px from the 67.3 % trigger). It
+   * applies an additional upward translate so the heading
+   * scrolls off the top of the viewport in lock-step with
+   * page scroll. Defaults to 0 px when still pinned. */
+  transform: translate(-50%, calc(-50% - var(--unpin, 0px)));
+  width: min(var(--w-wide), calc(100% - var(--gutter) * 2));
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+  font-family: var(--font-display, var(--font-sans, inherit));
+  font-size: clamp(10px, 3.4vw, 52px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink, #0e0e10);
+  pointer-events: none;
+  /* Transform-origin is the centre by default — the scale and
+   * translate transitions in the --shifted state should anchor
+   * around the centre of the heading. */
+  transform-origin: 50% 50%;
+  /* Above .hero-globe (z-index 2) — the heading floats over
+   * the scattering globe canvas. */
+  z-index: 9999;
+  /* Default = hidden. visibility: hidden is an instant hard
+   * gate so the element never flashes during CSS-load or
+   * scroll-restoration. The phase modifiers flip it visible. */
+  opacity: 0;
+  visibility: hidden;
+  filter: blur(12px);
+  transition:
+    opacity 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.25, 0.1, 0.25, 1),
+    visibility 0s 1.6s;            /* hide after opacity transition ends */
+}
+
+/* While scrolling past the unpin threshold the transform
+ * changes every frame — drop the 0.7 s transition so the
+ * heading tracks scroll 1:1 instead of lagging behind. */
+.statement-heading--unpinned,
+.bunn-heading--unpinned {
+  transition:
+    opacity 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0s !important;
+}
+
+/* Visible — same blur-fade vocabulary as the hero entrance,
+ * but reveals the whole block at once over a longer 1.6 s
+ * duration so the statement reads as a single thought
+ * settling into focus. */
+.statement-heading--visible {
+  opacity: 1;
+  visibility: visible;
+  filter: blur(0);
+  /* visibility flips instantly on show (0 s delay). */
+  transition:
+    opacity 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.25, 0.1, 0.25, 1),
+    visibility 0s;
+}
+
+/* Leaving — straight opacity fade only. NO blur on the way
+ * out, per the spec ("dissolve only for appearance, not for
+ * disappear"). Slight transition on opacity so the exit isn't
+ * a jarring snap. */
+.statement-heading--leaving {
+  opacity: 0;
+  filter: blur(0);
+  transition:
+    opacity 0.5s ease-in,
+    filter 0s,
+    transform 0.7s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Shifted — applied while the BUNN follow-up line is visible.
+ *
+ * Scales to 70 % AND drops to 70 % opacity (the whole block
+ * "de-emphasises" so the live BUNN line reads above it).
+ * Lifts up just enough that the BUNN line lands at viewport
+ * centre with a gap equal to the heading's own line-padding
+ * between them.
+ *
+ * Math (the heading's font-size is the em reference):
+ *   • BUNN line height        ≈ 1.15 em   (line-height: 1.15)
+ *   • Heading line height     ≈ 1.15 em
+ *   • Heading scaled to 0.7   ≈ 0.805 em per line
+ *   • Inter-line padding      ≈ 0.15 em   (line-height − 1)
+ *   • Lift = ½ BUNN + gap + ½ scaled heading
+ *          ≈ 0.575 + 0.15 + 0.4 × N em
+ *          ≈ 1.1 em for N = 1 line,
+ *          ≈ 1.5 em for N = 2 lines.
+ *   • The 67.3 % typically wraps to 2 lines at our 1080 px
+ *     max-width, so 1.5 em is the working centre value. */
+.statement-heading--shifted {
+  /* Scale 0.6 = 40 % smaller. Lift recomputed to keep the
+   * doubled line-padding gap with the new (shorter) scaled
+   * height:
+   *   lift = ½ BUNN + 2 × line-padding + ½ scaled heading
+   *        = 0.575 + 0.30 + 0.345 × N em
+   *   For N = 2 lines that's ≈1.55 em.
+   * Adds the unpin offset on top so once the block unpins
+   * this heading scrolls up with the rest. */
+  transform: translate(-50%, calc(-50% - 1.55em - var(--unpin, 0px)))
+    scale(0.6);
+  opacity: 0.4;
+}
+
+/* ── BUNN follow-up heading ──────────────────────────────────
+ * Same typography/positioning vocabulary as `.statement-heading`
+ * (fixed-position, viewport-centred, uppercase + bold, brand
+ * ink colour) so it lands exactly where the 67.3 % line was
+ * sitting once the 67.3 % is bumped upward by the --shifted
+ * modifier. The internal per-character stagger reveal is
+ * handled by the StaggerText component — this wrapper only
+ * provides the layout. */
+.bunn-heading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  /* See .statement-heading: --unpin is set inline once the
+   * block unpins; here it carries the same offset so both
+   * headings scroll up in lock-step. */
+  transform: translate(-50%, calc(-50% - var(--unpin, 0px)));
+  width: min(var(--w-wide), calc(100% - var(--gutter) * 2));
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+  font-family: var(--font-display, var(--font-sans, inherit));
+  font-size: clamp(10px, 3.4vw, 52px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink, #0e0e10);
+  pointer-events: none;
+  z-index: 9999;
+  transition: transform 0s;
+}
+
+/* Both states keep the element rendered — StaggerText's
+ * per-character animation handles the actual reveal. In the
+ * `hidden` state characters sit at y:100% opacity:0 so they're
+ * invisible; in `visible` they animate to y:0 opacity:1. */
+.bunn-heading--hidden,
+.bunn-heading--visible {
+  opacity: 1;
+}
+
+/* (Old .statement-mark-target removed — replaced by
+ * .statement-chip-target + .statement-chip below.) */
+
+/* Pink chip outline around "how to pay" — SVG rounded rect
+ * with a stroke-dashoffset draw animation, matching the info
+ * card 3 reveal.  5 px padding between text and outline.
+ * pointer-events: none — purely decorative. */
+.statement-chip-target {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.statement-chip-svg {
+  position: absolute;
+  top: 0;
+  left: -10px;
+  bottom: -3px;
+  width: calc(100% + 20px);
+  height: calc(100% + 3px);          /* 0 top + 3 bottom */
+  pointer-events: none;
+  overflow: visible;
+}
+
+.statement-chip-rect {
+  /* SVG2 CSS geometry — fills the SVG minus 0.5 px for the
+   * stroke to sit on the inside edge (stroke is centred). */
+  x: 0.5px;
+  y: 0.5px;
+  width: calc(100% - 1px);
+  height: calc(100% - 1px);
+  fill: none;
+  stroke: #FF9BAC;
+  stroke-width: 1;
+  /* pathLength="1" normalises the perimeter, so dasharray=1
+   * is one full dash and dashoffset=1 hides it completely. */
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Draw the chip once the heading is visible (or leaving). */
+.statement-heading--visible .statement-chip-rect,
+.statement-heading--leaving .statement-chip-rect {
+  stroke-dashoffset: 0;
+}
+
+/* ── How-it-works card section ──────────────────────────────
+ * overflow: hidden clips the ScrollStack cards to the
+ * section's box. Cards that are translated above the
+ * section's top edge (after the stack unpins and the section
+ * scrolls off) are masked — matching the "clipped session"
+ * behaviour the text-block headings use. */
+.how-section {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Info cards section ─────────────────────────────────────
+ * Four notched-shape cards in a row. Cards 1, 2, 4 are text
+ * only (no background/border). Card 3 has a 1 px outline
+ * that draws itself when the section scrolls into view.
+ * 100 px gap above the section (below the 5th stack card). */
+.info-section {
+  position: relative;
+  z-index: 1;
+  padding: 0 calc(15px + 5%) 15px;
+  display: flex;
+  gap: 15px;
+  background: #fff;
+}
+
+/* Scattered card outlines behind the info cards — right side
+ * is the original SVG, left side is horizontally mirrored.
+ * Y position and size are driven by CSS custom properties
+ * (--bg-left-y, --bg-left-scale, --bg-right-y, --bg-right-scale)
+ * set on .info-section from the dev toggle panel. */
+.info-section::before,
+.info-section::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 34%;
+  aspect-ratio: 715 / 1056;
+  background: url('/uaerealeastate/bg-cards.svg') no-repeat center / contain;
+  pointer-events: none;
+  z-index: 0;
+}
+.info-section::after {
+  right: -2%;
+  width: calc(34% * var(--bg-right-scale, 1));
+  transform: translateY(calc(-50% + var(--bg-right-y, 0px)));
+}
+.info-section::before {
+  left: -2%;
+  width: calc(34% * var(--bg-left-scale, 1));
+  transform: translateY(calc(-50% + var(--bg-left-y, 0px))) scaleX(-1);
+}
+
+.info-card {
+  flex: 1;
+  aspect-ratio: 351 / 414;
+  position: relative;
+  clip-path: url(#info-card-clip);
+}
+
+/* Text-only cards (1, 2, 4) — no background, just text. */
+.info-card--text {
+  background: transparent;
+}
+
+/* Bordered card (card 3) — 1 px grey stroke via an inner
+ * SVG. The stroke is centred on the path (2 px total); the
+ * clip-path crops the outer half so 1 px remains.
+ * vector-effect: non-scaling-stroke keeps the 1 px constant
+ * across all card sizes. The stroke is animated via
+ * stroke-dashoffset from fully hidden to fully revealed.
+ * clip-path removed so the rolling coin can extend outside
+ * the card shape on top/bottom curves. */
+.info-card--bordered {
+  background: transparent;
+  clip-path: none;
+}
+
+.info-card__border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  /* Allow the rolling coin to extend outside the card shape */
+  overflow: visible;
+}
+
+/* SVG stroke drawing animation — the path starts fully
+ * hidden (dashoffset = total length) and animates to 0
+ * when the parent .info-section gains --visible. The path
+ * starts at the top-right corner and draws clockwise. */
+.info-card__border path {
+  transition: stroke-dashoffset 4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.info-section--visible .info-card__border path {
+  stroke-dashoffset: 0;
+}
+
+/* Content zone — positioned within the card's "widest zone"
+ * (between the top-left notch ending at y ≈ 21.7 % and the
+ * bottom-right notch starting at y ≈ 77.5 %). Padding
+ * tuneable via CSS custom properties; defaults to 15 px. */
+.info-card__content {
+  position: absolute;
+  top: calc(21.7% + var(--info-pad-tb, 15px));
+  bottom: calc(22.5% + var(--info-pad-tb, 15px));
+  left: var(--info-pad-lr, 15px);
+  right: var(--info-pad-lr, 15px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 2;
+}
+
+/* ── Per-word reveal (Intrepid-style) ──────────────────────
+ * Each word is wrapped in .word-reveal (overflow clip) with
+ * an inner span that slides up + fades in. Words start pink,
+ * transition to the element's normal colour. --wi (word index)
+ * drives per-word stagger. */
+.word-reveal {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  /* Preserve a single whitespace gap between words */
+  margin-right: 0.25em;
+}
+.word-reveal__inner {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(100%);
+  color: var(--accent, #ff1f8f);
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--wi, 0) * 0.045s);
+}
+.info-section--visible .word-reveal__inner {
+  opacity: 1;
+  transform: translateY(0);
+  color: #272727;
+}
+/* Per-card base delay — each card's words start after the
+ * previous card's words have begun revealing. */
+.info-section--visible .info-card:nth-child(2) .word-reveal__inner {
+  transition-delay: calc(0.3s + var(--wi, 0) * 0.045s);
+}
+.info-section--visible .info-card:nth-child(3) .word-reveal__inner {
+  transition-delay: calc(0.6s + var(--wi, 0) * 0.045s);
+}
+.info-section--visible .info-card:nth-child(4) .word-reveal__inner {
+  transition-delay: calc(0.9s + var(--wi, 0) * 0.045s);
+}
+
+.info-card__heading {
+  font-family: 'Engravers Gothic', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: var(--info-heading-size, clamp(10px, 1.18vw, 17px));
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.info-card__subtitle {
+  font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  font-size: var(--info-subtitle-size, clamp(10px, 0.8vw, 13px));
+  line-height: 1.5;
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* ── Logos section — regulators + partners ─────────────────
+ * Horizontal row with two groups: "FULLY COMPLIANT" (regulator
+ * marks) and "IN PROUD PARTNERSHIP WITH" (partner logos).
+ * Engravers Gothic bold, grey text. 100 px gap above (below
+ * the info cards). */
+.logos-section {
+  position: relative;
+  z-index: 1;
+  padding: 100px calc(15px + 5%) 35px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  background: #fff;
+}
+
+/* "Fully Compliant" aligns with info card 1's TEXT left edge
+ * (card starts at column 1, text inside is inset by --info-pad-lr = 35px) */
+.logos-group:first-child {
+  grid-column: 1 / 3;
+  padding-left: var(--info-pad-lr, 35px);
+}
+
+/* "In Proud Partnership With" aligns with info card 3 (columns 3-4) */
+.logos-group:last-child {
+  grid-column: 3 / 5;
+}
+
+.logos-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.logos-group__label {
+  font-family: 'Engravers Gothic', 'Engravers Gothic BT', sans-serif;
+  font-weight: 700;
+  font-size: clamp(10px, 0.76vw, 11px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #999;
+  white-space: nowrap;
+}
+
+.logos-group__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 36px;
+}
+
+.logos-group__logo {
+  display: block;
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logos-group--compliant .logos-group__logo {
+  height: 33px;
+}
+
+.logos-group__logo--bridge {
+  height: 33px;
+}
+
+.logos-group__logo--fidelity {
+  height: 31.5px;
+}
+
+/* ── Shared canvas — carousel + brokers ─────────────────── */
+/* Continuous pink gradient that spans both the carousel and
+   the brokers sections so there is no visible seam between
+   them. Both child sections have transparent backgrounds. */
+.carousel-brokers-wrap {
+  position: relative;
+  z-index: 2;
+  background:
+    radial-gradient(
+      60% 35% at 40% 45%,
+      rgba(255, 155, 172, 0.10) 0%,
+      rgba(255, 155, 172, 0) 70%
+    ),
+    radial-gradient(
+      50% 30% at 30% 70%,
+      rgba(255, 155, 172, 0.14) 0%,
+      rgba(255, 155, 172, 0) 70%
+    ),
+    radial-gradient(
+      50% 30% at 75% 75%,
+      rgba(255, 155, 172, 0.10) 0%,
+      rgba(255, 155, 172, 0) 70%
+    ),
+    #fff;
+}
+
+/* ── Buyer carousel section ─────────────────────────────── */
+.carousel-section {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  overflow-x: clip;                /* prevent horizontal scrollbar from
+                                    * the 3-D side slides that extend
+                                    * past the viewport edges */
+}
+
+
+/* ── Photo CTA section ─────────────────────────────────────
+ * S-curve shape filled with a parallax photo, white heading
+ * centred on top, and the same CTA pill below. 15 px from
+ * screen edges. The clip-path (SVG #photo-shape-clip) creates
+ * the organic notch at the top-left that visually flows from
+ * the logos section above. */
+.photo-cta-section {
+  position: relative;
+  z-index: 1;
+  padding: 0 15px;
+  background: #fff;
+}
+
+.photo-shape {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1694 / 742;
+  clip-path: url(#photo-shape-clip);
+  overflow: hidden;
+  border-radius: 0;
+}
+
+/* The photo is 130 % the height of the clip container so there
+ * is room for the parallax translation (±8 %). */
+.photo-shape__img {
+  position: absolute;
+  top: -15%;
+  left: 0;
+  width: 100%;
+  height: 130%;
+  background: url('/uaerealeastate/photos/couple-portrait.png') center / cover no-repeat;
+  will-change: transform;
+}
+
+/* Semi-transparent overlay — heading + CTA stacked vertically.
+ * Horizontal padding = 5vw + 35px so the text left edge aligns
+ * with the "Fully Compliant" logos label.  The logos-section uses
+ *   padding: 0 calc(15px + 5%)  → 15 px + 5 vw from page edge
+ * then the compliant group adds --info-pad-lr (35 px).
+ * Photo shape is 15 px from the page edge, so overlay needs
+ * 5 vw + 35 px to land on the same column as the logos.
+ * container-type lets the heading use cqi units so its font-size
+ * tracks the overlay's content-box width. */
+.photo-shape__overlay {
+  position: absolute;
+  inset: 0;
+  /* Grid centres the heading at the true vertical midpoint.
+   * Row 1 (1fr) = top spacer.
+   * Row 2 (auto) = heading — sits at exact 50 %.
+   * Row 3 (1fr) = bottom spacer; the CTA button lives here
+   *   with align-self:start + margin-top:120px so it's
+   *   exactly 120 px below the heading. */
+  display: grid;
+  grid-template-rows: 1fr auto 1fr;
+  justify-items: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0 calc(var(--photo-text-pad-extra, 0px) + 5vw + 35px);
+  z-index: 1;
+  container-type: inline-size;
+}
+
+/* White Engravers heading — same typography as the hero H1 but
+ * in white over the photo. BlurText wraps each word in a flex
+ * child; `justify-content: center` centres the word row. */
+.photo-shape__heading {
+  grid-row: 2;
+  color: #fff;
+  font-family: 'Engravers Gothic', 'Engravers Gothic BT', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  /* 6.7cqi = 6.7 % of the overlay's content-box width,
+     which shrinks/grows as --photo-text-pad changes. */
+  font-size: clamp(10px, 6.7cqi, 120px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-align: center;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: nowrap !important;
+  margin: 0;
+}
+
+/* CTA button in photo overlay — lives in grid row 3 (the
+ * bottom 1fr spacer), pinned to its top edge with a 120 px
+ * gap below the heading.
+ * --photo-btn-y shifts the button up/down (dev toggle). */
+.border-glow-card.photo-cta-glow-wrap {
+  grid-row: 3;
+  align-self: start;
+  position: relative;
+  width: 270px;
+  height: 56px;
+  margin-top: 120px;
+  transform: translateY(var(--photo-btn-y, 0px));
+}
+
+/* Re-use the same blend-mode fix as the hero CTA. */
+.border-glow-card.photo-cta-glow-wrap > .edge-light,
+.border-glow-card.photo-cta-glow-wrap::after {
+  mix-blend-mode: normal;
+}
+
+/* ── Buyer personas — InfiniteMenu globe ────────────────── */
+.personas-section {
+  position: relative;
+  z-index: 2;
+  padding: 0 15px;
+  background: #fff;
+}
+
+.personas-globe-wrap {
+  position: relative;
+  width: 100%;
+  margin-left: 0;
+  height: 525px;
+  overflow: hidden;
+}
+
+/* Top + bottom fade: transparent → white inward */
+.personas-globe-wrap::before,
+.personas-globe-wrap::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 120px;
+  z-index: 2;
+  pointer-events: none;
+}
+.personas-globe-wrap::before {
+  top: 0;
+  background: linear-gradient(to bottom, #fff, transparent);
+}
+.personas-globe-wrap::after {
+  bottom: 0;
+  background: linear-gradient(to top, #fff, transparent);
+}
+
+/* ── Brokers — glass card over curved loop marquee ────────── */
+.brokers-section {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  padding: 120px 0 120px;
+  overflow: hidden;
+}
+
+
+/* Curved loop spans the full section behind the card */
+.brokers-section .curved-loop-jacket {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+}
+
+.brokers-section .curved-loop-svg {
+  font-family: 'Engravers Gothic', serif;
+  font-size: clamp(10px, 8.33vw, 120px);
+  fill: transparent;
+  stroke: #FF9BAC;
+  stroke-width: 1px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Card — same pattern as hero-card.
+   IMPORTANT: NO z-index here. The card must NOT create its own
+   stacking context so that the shadow-wrap (z:-1), CurvedLoop (z:0),
+   and glass-surface (z:2) all participate in the SECTION's stacking
+   context. This lets the rolling text sit BETWEEN the shadow and the
+   glass — the glass's backdrop-filter then blurs the rolling text
+   (visible frosted glass) while the shadow still follows the S-curve. */
+.brokers-card {
+  position: relative;
+  margin: 0 auto;
+  width: min(var(--w-content), calc(100% - var(--gutter) * 2));
+  border-radius: 35px;
+}
+
+/* Shadow — duplicate of the glass shape with the same S-curve
+   clip-path (synced via MutationObserver). Two nested elements:
+   WRAPPER: filter: drop-shadow, NO clip-path → shadow extends
+   INNER:   clip-path (S-curve from JS), white bg → shapes the shadow
+
+   z-index: -1 places this BELOW the CurvedLoop (z:0) in the
+   SECTION's stacking context (the card has no z-index so it
+   doesn't create its own context). This way:
+     z:-1  shadow shape (white bg casts the drop-shadow)
+     z: 0  CurvedLoop rolling text
+     z: 2  glass-surface (backdrop-filter blurs the rolling text)
+   The glass sees the rolling text through its backdrop-filter →
+   visible frosted glass effect.  The shadow is mostly invisible
+   (white on white section bg) but its drop-shadow pixels peek
+   around the card edges. */
+.brokers-card__shadow-wrap {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0px 16px 32px rgba(12, 12, 13, 0.10));
+  pointer-events: none;
+  z-index: -1;
+}
+.brokers-card__shadow {
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  border-radius: 35px;
+}
+
+/* Match the hero card's glass surface exactly — same default
+   background-color (rgba 255,255,255,0.25) from GlassSurface.css,
+   same inset bevel box-shadow, no extra border that would make it
+   look heavier than the hero. */
+.brokers-card .glass-surface {
+  position: relative;
+  z-index: 2;
+}
+
+
+.brokers-card__inner {
+  width: 100%;
+  /* 35 px left/right text padding (was 40). */
+  padding: 40px 35px 120px 35px;
+  position: relative;
+}
+
+/* Top row: heading + coin side by side */
+.brokers-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 48px;
+}
+
+.brokers-card__text {
+  flex: 1 1 auto;
+}
+
+.brokers-card__heading {
+  font-family: 'Engravers Gothic', serif;
+  font-size: clamp(10px, 7.64vw, 110px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  /* Negative left margin cancels Engravers Gothic's left
+     side-bearing, which scales with font size. At 110px the
+     "B" ink sits ~7.6px right of the box; the 20px body text
+     sits ~1.4px right. The −6.2px pull aligns the heading's
+     visible left edge with the subtitle + steps below it so
+     all the text shares one optical left edge. */
+  margin: 0 0 20px -6.2px;
+  text-transform: uppercase;
+}
+
+.brokers-card__sub {
+  font-family: 'Engravers Gothic', serif;
+  font-size: clamp(10px, 1.39vw, 20px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  color: var(--ink);
+  text-transform: uppercase;
+  margin: 0;
+  max-width: 500px;
+}
+
+.brokers-coin {
+  flex: 0 0 auto;
+  width: 260px;
+  height: 273px;
+  perspective: 800px;
+  margin-top: -26px;
+}
+
+.brokers-coin__svg {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  transform: rotateY(-8deg);
+}
+
+.brokers-coin:hover .brokers-coin__svg {
+  transform: rotateY(15deg);
+}
+
+/* Broker steps — same 3-column layout as hero subhead.
+   flex-start (not space-between) so step 1 text is flush
+   with the heading above — all text sits on the same left axis. */
+.broker-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: flex-start;
+  /* Gap on both sides of every divider so the step text isn't
+     flush against the connecting flow-lines. 30 px per gap
+     trims each text column ~15 % thinner (261 → ~221 px at the
+     960 px card) and gives the dividers breathing room. */
+  gap: 30px;
+  width: 100%;
+  margin-bottom: 60px;
+}
+
+/* Wrapper carries position: relative for the mobile arc SVG. */
+.broker-steps-wrap {
+  position: relative;
+}
+
+/* Arc connectors — hidden on desktop (divider lines used instead). */
+.broker-arcs {
+  display: none;
+}
+
+/* Dividers between steps: vertically centred within the
+   stretched row while step text stays top-left. */
+.broker-steps > .subhead-divider {
+  align-self: center;
+  flex: 0 0 48px;
+}
+
+.broker-step-item {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.broker-step {
+  font-family: 'Satoshi', sans-serif;
+  font-size: clamp(10px, 1.39vw, 20px);
+  line-height: 1.45;
+  color: var(--ink);
+  font-weight: 500;
+  margin: 0;
+  text-align: left;
+  white-space: normal;
+}
+
+/* Bottom tagline — grey caps */
+.brokers-card__tagline {
+  font-family: 'Engravers Gothic', serif;
+  font-size: clamp(10px, 1.11vw, 16px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0;
+  position: absolute;
+  bottom: 30px;
+  left: 40px;
+}
+
+/* CTA — reuse .cta-fab but scoped position in brokers card */
+.border-glow-card.brokers-cta-wrap {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  height: 56px;
+  z-index: 4;
+}
+
+/* ── FAQ section ──────────────────────────────────────────── */
+.faq-section {
+  position: relative;
+  z-index: 2;
+  width: min(var(--w-content), calc(100% - var(--gutter) * 2));
+  margin: 0 auto;
+  padding: 0 0 15px;
+  background: var(--bg);
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Single FAQ card ─────────────────────────────────────── */
+.faq-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 36px 120px -70px rgba(15, 15, 15, 0.18);
+  transition: box-shadow 0.5s ease;
+}
+
+/* ── iOS Safari: no glass ──────────────────────────────────
+   backdrop-filter glass renders incorrectly / janky on iOS, so
+   `html.no-glass` (added from main.tsx on iOS) strips the
+   backdrop-filter everywhere and bumps the translucent fills to
+   near-opaque so text stays readable without the blur. !important
+   beats GlassSurface's inline backdrop-filter. */
+html.no-glass .glass-surface {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+/* Cityscape CTA keeps its brand-pink identity — solid, not white. */
+html.no-glass .cityscape-cta-glass.glass-surface {
+  background-color: #ff9bb4 !important;
+}
+html.no-glass .faq-item {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+/* ── Pointer-following glow ──────────────────────────────── */
+.faq-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s;
+  background: radial-gradient(
+    240px circle at var(--faq-x, 50%) var(--faq-y, 50%),
+    rgba(255, 155, 172, 0.15),
+    transparent 70%
+  );
+}
+.faq-item--open .faq-glow,
+.faq-item:hover .faq-glow {
+  opacity: 1;
+}
+
+/* ── Trigger button ──────────────────────────────────────── */
+.faq-trigger {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  width: 100%;
+  padding: 28px 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+}
+.faq-trigger:focus-visible {
+  outline: 2px solid rgba(14, 14, 16, 0.25);
+  outline-offset: 4px;
+}
+
+/* ── Circle icon ─────────────────────────────────────────── */
+.faq-icon {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 155, 172, 0.4);
+  background: rgba(255, 155, 172, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.5s;
+}
+.faq-item:hover .faq-icon {
+  transform: scale(1.05);
+}
+
+/* Ping ring on open */
+.faq-icon__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 155, 172, 0.4);
+  opacity: 0.3;
+  pointer-events: none;
+}
+.faq-item--open .faq-icon__ring {
+  animation: faq-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes faq-ping {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+/* Plus → × rotation */
+.faq-icon__svg {
+  position: relative;
+  color: var(--ink);
+  transition: transform 0.5s;
+}
+.faq-item--open .faq-icon__svg {
+  transform: rotate(45deg);
+}
+
+/* ── Content area ────────────────────────────────────────── */
+.faq-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.faq-q {
+  margin: 0;
+  font-family: 'Satoshi', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: clamp(10px, 1.25vw, 18px);
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* ── Collapsible body (max-height) ───────────────────────── */
+.faq-body {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.5s ease-out;
+}
+.faq-item--open .faq-body {
+  max-height: 280px;
+}
+
+.faq-a {
+  margin: 0;
+  padding-right: 8px;
+  font-family: 'Satoshi', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(10px, 0.97vw, 14px);
+  line-height: 1.625;
+  color: var(--ink-faint);
+}
+
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .topbar {
+    padding: 18px 24px;
+  }
+  .hero-heading {
+    top: 14vh;
+  }
+  .faq-section {
+    padding: 70px 0 80px;
+  }
+  .faq-item {
+    border-radius: 20px;
+  }
+  .faq-trigger {
+    padding: 22px 20px;
+    gap: 16px;
+  }
+  .faq-icon {
+    width: 40px;
+    height: 40px;
+  }
+  /* Statement headings — 34 px on tablet + mobile. */
+  .statement-heading {
+    font-size: 34px;
+  }
+  .bunn-heading {
+    font-size: 34px;
+  }
+  /* Footer edges track the cityscape card edges (12px at this bp). */
+  .site-footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+/* ── Site footer — logo + address ────────────────────────── */
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  background: var(--bg);
+}
+
+.site-footer__logo {
+  height: 15px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+}
+
+.site-footer__text {
+  margin: 0;
+  font-family: 'Satoshi', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(10px, 1.11vw, 16px);
+  line-height: 1.4;
+  color: var(--ink);
+  text-align: right;
+}
+
+@media (max-width: 600px) {
+  /* ── Hero glass card ──────────────────────────────────────
+     On phones the 3-step flow row can't fit side-by-side and the
+     corner-anchored CTA collides with the compliance block. Stack
+     everything into a clean centred column: steps top, compliance
+     below, full-width CTA pinned to the card bottom. The corner
+     notch is disabled at this width in useCardNotch. */
+  .hero-card__inner {
+    padding: 28px 20px 92px;
+  }
+  .subhead-steps {
+    gap: 0;                      /* space-between distributes all gaps */
+  }
+  /* Explicit per-step widths that match the widest wrapped line
+     at 10 px / Engravers Gothic uppercase / letter-spacing 0.04 em.
+     Step 1: "PAYMENT LINK" = 66.6 px  →  67 px
+     Step 2: "BUYER PAYS IN" = 70.8 px →  71 px
+     Step 3: "YOU RECEIVE AED" = 82.5 px → 83 px
+     (forces "IN YOUR BANK" onto line 2)
+     Total 221 + 40 dividers = 261 px in a 303 px row →
+     42 px free ÷ 4 gaps = 10.5 px per gap, centering dividers. */
+  .subhead-step-item:nth-child(1) { width: 67px !important; flex: 0 0 67px; }
+  .subhead-step-item:nth-child(3) { width: 71px !important; flex: 0 0 71px; }
+  .subhead-step-item:nth-child(5) { width: 83px !important; flex: 0 0 83px; }
+  .subhead-step-item {
+    min-width: 0;
+  }
+  .subhead-step {
+    text-align: left;
+  }
+  .subhead-divider {
+    width: 20px;                 /* shorter dividers on mobile */
+    flex: 0 0 20px;
+  }
+  .compliance {
+    position: static;          /* flow below the steps, not pinned */
+    align-items: flex-start;   /* left-aligned, same edge as steps */
+    margin-top: 22px;
+    text-align: left;
+    width: 100%;               /* stretch to card's padded width */
+  }
+  .compliance__logos {
+    width: 100%;
+    gap: 0;                      /* drop the 30 px base gap; space-between distributes */
+    justify-content: space-between;
+  }
+  /* Scale logos to fit 3-up inside the card padding. */
+  .compliance__logo--dld,
+  .compliance__logo--vara {
+    height: 22px;
+  }
+  .compliance__logo--cb {
+    height: 24px;
+  }
+  /* Compound selector matches the base rule's 0,2,0 specificity so
+     these win (media queries don't raise specificity). */
+  .border-glow-card.cta-fab-glow-wrap {
+    left: 15px;
+    right: 15px;
+    width: auto;               /* full-width pill at the card bottom */
+    bottom: 15px;
+  }
+
+  /* ── Hero headline + rotator ───────────────────────────────
+     Both share the same mobile size so the headline and the
+     rotating city line read as one continuous statement. The
+     rotator also wraps (it's one nowrap line on desktop). */
+  h1 {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+  .rotator {
+    white-space: normal;
+    font-size: clamp(22px, 6vw, 28px);
+    line-height: 1.18;
+  }
+  /* The "52+ countries" centred variant forces a single max-content
+     line — neutralise it on phones so it can wrap too. */
+  .rotator--centered {
+    width: auto;
+    max-width: 100%;
+    left: auto;
+    transform: none;
+  }
+
+  /* ── Brokers card ─────────────────────────────────────────
+     Left-aligned card content, one-row steps with arc connectors,
+     coin overlaps heading, full-width CTA at the bottom. */
+  /* Match the brokers card width to the carousel slide (85vw). */
+  .brokers-card {
+    width: 85vw;
+  }
+  .brokers-section .curved-loop-svg {
+    font-size: 40px;
+  }
+  .brokers-card__inner {
+    padding: 32px 20px 92px;
+  }
+  .brokers-card__top {
+    position: relative;        /* anchor for the coin overlay */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 30px;
+  }
+  .brokers-card__text {
+    width: 100%;
+    text-align: left;
+  }
+  .brokers-card__heading {
+    font-size: clamp(44px, 15vw, 72px);
+    margin: 0 0 14px;
+  }
+  .brokers-card__sub {
+    font-size: 15px;
+    max-width: none;
+  }
+  /* Coin — small, overlapping the heading's right side.
+     10 % of the coin's width sits over the "BROKERS" text.
+     At 375 px the text right edge ≈ 223 px from the card's
+     left padding, so right: 8 px puts the coin's left edge
+     8 px inside the text = 10 % of the 80 px coin. */
+  .brokers-coin {
+    display: block;
+    position: absolute;
+    top: -5px;
+    right: 8px;
+    width: 80px;
+    height: 84px;
+    margin: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .broker-steps-wrap {
+    position: relative;        /* anchor for arc SVG */
+  }
+  .broker-steps {
+    gap: 10px;                 /* breathing room (dividers hidden) */
+    margin-bottom: 28px;
+  }
+  .broker-steps > .subhead-divider {
+    display: none;             /* hide line dividers — arcs replace them */
+  }
+  .broker-step-item {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .broker-step {
+    text-align: left;
+  }
+  /* ── Arc connectors above broker steps ───────────────────
+     Two arcs (block1→2, block2→3) curve upward from each
+     block's top-centre. Same 1 px black + pink-impulse style
+     as the desktop divider lines. Max height = 70 % of the
+     30 px gap above the steps = 21 px. */
+  .broker-arcs {
+    display: block;
+    position: absolute;
+    top: -21px;
+    left: 0;
+    width: 100%;
+    height: 21px;
+    pointer-events: none;
+  }
+  .broker-arcs__line {
+    fill: none;
+    stroke: #272727;
+    stroke-width: 1;
+  }
+  .broker-arcs__pulse {
+    fill: none;
+    stroke: #FF9BAC;
+    stroke-width: 2;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: arc-pulse 3s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+  }
+  .broker-arcs__pulse--delayed {
+    animation-delay: 1.5s;
+  }
+  @keyframes arc-pulse {
+    0%   { stroke-dashoffset: 1; }
+    40%  { stroke-dashoffset: 0; }
+    70%  { stroke-dashoffset: -1; }
+    100% { stroke-dashoffset: -1; }
+  }
+  .brokers-card__tagline {
+    position: static;          /* flow above the CTA, not pinned */
+    left: auto;
+    bottom: auto;
+    text-align: left;
+  }
+  .border-glow-card.brokers-cta-wrap {
+    left: 15px;
+    right: 15px;
+    width: auto;
+    bottom: 15px;
+  }
+
+  /* Statement text matches the cityscape heading size on mobile
+     (same clamp as .cityscape-heading), overriding the 49px set in
+     the ≤900 block above. */
+  .statement-heading {
+    font-size: clamp(44px, 15vw, 72px);
+  }
+
+  /* ── Statement "how to pay" chip ──────────────────────────
+     Rounder (5px) outline that hugs the text — 25% less padding
+     than the 10px desktop gap. */
+  .statement-chip-rect {
+    rx: 5px;
+    ry: 5px;
+  }
+  .statement-chip-svg {
+    left: -7.5px;
+    width: calc(100% + 15px);
+    bottom: -2.25px;
+    height: calc(100% + 2.25px);
+  }
+  /* The 67.3% heading wraps to many lines on a phone; lift it
+     further in its shifted state so the BUNN line below clears it. */
+  .statement-heading--shifted {
+    transform: translate(-50%, calc(-50% - 4em - var(--unpin, 0px)))
+      scale(0.6);
+  }
+
+  /* ── Info section → 2×2 grid ──────────────────────────────── */
+  .info-section {
+    flex-wrap: wrap;
+    padding: 0 20px 15px;
+    gap: 12px;
+    overflow: hidden;            /* clip the shifted bg figures (no page scroll) */
+  }
+  .info-card {
+    flex: 0 0 calc(50% - 6px);   /* two per row, original 351/414 shape */
+  }
+  /* Keep the original block + outline shapes (no taller cards, no
+     stretched 3rd figure) — fit the copy by sizing the text down. */
+  .info-card__heading {
+    font-size: 9px;
+  }
+  .info-card__subtitle {
+    font-size: 8px;
+    line-height: 1.35;
+  }
+  /* Push the scattered background figures further out so they don't
+     sit under the 2×2 card grid. */
+  .info-section::before {
+    left: -22%;
+  }
+  .info-section::after {
+    right: -22%;
+  }
+
+  /* ── Logos: stack the two groups (2 lines), scale to vw ──── */
+  .logos-section {
+    grid-template-columns: 1fr;
+    padding: 40px 20px 30px;
+    gap: 26px;
+  }
+  .logos-group:first-child,
+  .logos-group:last-child {
+    grid-column: 1 / -1;
+    padding-left: 0;
+  }
+  /* Tighter gap + wrap so the wide partner logos (BlackRock etc.)
+     never overflow the row. */
+  .logos-group__row {
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .logos-group__logo,
+  .logos-group--compliant .logos-group__logo,
+  .logos-group__logo--bridge,
+  .logos-group__logo--fidelity {
+    height: clamp(14px, 4.2vw, 22px);
+  }
+
+  /* ── Footer — one-line address, edges aligned to the cityscape
+     card (10px L/R = cityscape mobile padding) ─────────────── */
+  .site-footer {
+    padding: 15px 10px;
+    overflow: hidden;            /* never let the line force page scroll */
+  }
+  .site-footer__text {
+    white-space: nowrap;
+    font-size: clamp(6px, 1.9vw, 13px);
+  }
+}
