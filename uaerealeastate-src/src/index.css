@@ -1700,11 +1700,6 @@ h1 {
   position: relative;
 }
 
-/* Arc connectors — hidden on desktop (divider lines used instead). */
-.broker-arcs {
-  display: none;
-}
-
 /* Dividers between steps: vertically centred within the
    stretched row while step text stays top-left. */
 .broker-steps > .subhead-divider {
@@ -2106,31 +2101,28 @@ html.no-glass .faq-item {
     font-size: 15px;
     max-width: none;
   }
-  /* Coin — small, overlapping the heading's right side.
-     10 % of the coin's width sits over the "BROKERS" text.
-     At 375 px the text right edge ≈ 223 px from the card's
-     left padding, so right: 8 px puts the coin's left edge
-     8 px inside the text = 10 % of the 80 px coin. */
+  /* Coin — small, anchored to the card's top-right corner.
+     The coin renders centred in its 80px canvas with a ~10px
+     transparent gutter each side, so right:-8px pulls the box
+     out far enough that the *visible* coin sits flush with the
+     20px content padding (maintaining the gutter to the edge). */
   .brokers-coin {
     display: block;
     position: absolute;
     top: -5px;
-    right: 8px;
+    right: -8px;
     width: 80px;
     height: 84px;
     margin: 0;
     pointer-events: none;
     z-index: 2;
   }
-  .broker-steps-wrap {
-    position: relative;        /* anchor for arc SVG */
-  }
   .broker-steps {
     gap: 10px;                 /* breathing room (dividers hidden) */
     margin-bottom: 28px;
   }
   .broker-steps > .subhead-divider {
-    display: none;             /* hide line dividers — arcs replace them */
+    display: none;             /* hide line dividers on mobile */
   }
   .broker-step-item {
     flex: 1 1 0;
@@ -2138,42 +2130,6 @@ html.no-glass .faq-item {
   }
   .broker-step {
     text-align: left;
-  }
-  /* ── Arc connectors above broker steps ───────────────────
-     Two arcs (block1→2, block2→3) curve upward from each
-     block's top-centre. Same 1 px black + pink-impulse style
-     as the desktop divider lines. Max height = 70 % of the
-     30 px gap above the steps = 21 px. */
-  .broker-arcs {
-    display: block;
-    position: absolute;
-    top: -21px;
-    left: 0;
-    width: 100%;
-    height: 21px;
-    pointer-events: none;
-  }
-  .broker-arcs__line {
-    fill: none;
-    stroke: #272727;
-    stroke-width: 1;
-  }
-  .broker-arcs__pulse {
-    fill: none;
-    stroke: #FF9BAC;
-    stroke-width: 2;
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    animation: arc-pulse 3s cubic-bezier(0.6, 0, 0.4, 1) infinite;
-  }
-  .broker-arcs__pulse--delayed {
-    animation-delay: 1.5s;
-  }
-  @keyframes arc-pulse {
-    0%   { stroke-dashoffset: 1; }
-    40%  { stroke-dashoffset: 0; }
-    70%  { stroke-dashoffset: -1; }
-    100% { stroke-dashoffset: -1; }
   }
   .brokers-card__tagline {
     position: static;          /* flow above the CTA, not pinned */

@@ -1844,25 +1844,8 @@ function App() {
                 </Suspense>
               </div>
 
-              {/* Three broker steps + arc connectors (mobile) */}
+              {/* Three broker steps */}
               <div className="broker-steps-wrap">
-                {/* Arc connectors — two quadratic bezier arcs that
-                    curve upward from block-1→2 and block-2→3 top
-                    centres. Visible only on mobile (≤600 px). */}
-                <svg
-                  className="broker-arcs"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  {/* Arc 1: block 1 centre → block 2 centre */}
-                  <path className="broker-arcs__line" d="M 16 100 Q 33 5, 50 100" vectorEffect="non-scaling-stroke" pathLength="1" />
-                  <path className="broker-arcs__pulse" d="M 16 100 Q 33 5, 50 100" vectorEffect="non-scaling-stroke" pathLength="1" />
-                  {/* Arc 2: block 2 centre → block 3 centre */}
-                  <path className="broker-arcs__line" d="M 50 100 Q 67 5, 84 100" vectorEffect="non-scaling-stroke" pathLength="1" />
-                  <path className="broker-arcs__pulse broker-arcs__pulse--delayed" d="M 50 100 Q 67 5, 84 100" vectorEffect="non-scaling-stroke" pathLength="1" />
-                </svg>
-
                 <div className="broker-steps" role="list">
                   {BROKER_STEPS.map((step, i) => (
                     <Fragment key={i}>
