@@ -1978,7 +1978,11 @@ html.no-glass .faq-item {
 /* ── Site footer — logo + address ────────────────────────── */
 .site-footer {
   display: flex;
-  align-items: center;
+  /* flex-start (not center) so the logo + address both start at the
+     15px top-padding edge — i.e. exactly 15px below the cityscape
+     picture — instead of the logo riding ~2px lower when the address
+     line-box is taller (desktop). */
+  align-items: flex-start;
   justify-content: space-between;
   padding: 15px;
   background: var(--bg);

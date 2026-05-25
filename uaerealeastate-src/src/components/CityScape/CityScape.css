@@ -166,7 +166,9 @@
 
 @media (max-width: 900px) {
   .cityscape-section {
-    padding: 12px 12px 40px;
+    /* Bottom pad 0 so the footer's own 15px top padding is the only
+       gap between the skyline picture and the footer logo/text. */
+    padding: 12px 12px 0;
   }
   .cityscape-card {
     border-radius: 28px;
@@ -183,7 +185,9 @@
      the dotted skyline. */
   .cityscape-section {
     min-height: calc(100svh - 46px);
-    padding: 10px 10px 16px;
+    /* Bottom pad 0 — the footer's 15px top padding is the gap to the
+       skyline (card flex-grows to fill, footer position unchanged). */
+    padding: 10px 10px 0;
     display: flex;
     flex-direction: column;
   }
