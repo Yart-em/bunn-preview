@@ -183,6 +183,33 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
    * cleanup / re-trigger without leaking. */
   const tlRefs = useRef<(gsap.core.Timeline | null)[]>([]);
 
+  /* Slide background images (~1.4 MB of JPEGs) load only once the deck
+   * nears the viewport, keeping them off the initial page load. The
+   * 600px rootMargin starts the fetch just before the carousel scrolls
+   * into view so the active slide is ready when it arrives. */
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [imagesInView, setImagesInView] = useState(false);
+  useEffect(() => {
+    if (imagesInView) return;
+    const el = wrapRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setImagesInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setImagesInView(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '600px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [imagesInView]);
+
   /* ── Auto-rotate timer ──────────────────────────────────── */
   useEffect(() => {
     const id = setInterval(() => {
@@ -358,7 +385,7 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
   };
 
   return (
-    <div className="sc-wrap">
+    <div className="sc-wrap" ref={wrapRef}>
       <div className="sc-stage">
         {slides.map((slide, i) => {
           const isActive = i === activeIdx;
@@ -414,7 +441,7 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
                 <g filter={isActive ? `url(#sc-shadow-${i})` : undefined}>
                   <g clipPath={`url(#sc-clip-${i})`}>
                     <image
-                      href={slide.image}
+                      href={imagesInView ? slide.image : undefined}
                       x="0"
                       y="0"
                       width="760"
