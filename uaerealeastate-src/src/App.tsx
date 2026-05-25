@@ -637,11 +637,12 @@ function App() {
        * 1:1. This gives the sphere a smooth ride from
        * initialSphereTopAbs at sy=0 → sphereFinalTopAbs at
        * sy=lockScrollPx, paired with the size lerp below. */
-      const sphereTopOnViewport = lerp(
-        initialSphereTopAbs,
-        sphereFinalTopAbs,
-        cappedProgress,
-      );
+      /* On phones, lift the globe 20px (applied to the lerped top so
+       * the initial + locked positions both shift up). */
+      const mobileGlobeLiftPx = vw <= 600 ? 20 : 0;
+      const sphereTopOnViewport =
+        lerp(initialSphereTopAbs, sphereFinalTopAbs, cappedProgress) -
+        mobileGlobeLiftPx;
 
       /* Sphere size: the user's `globeInitialPct` / `globeFinalPct`
        * are percentages of viewport WIDTH that the rendered sphere
