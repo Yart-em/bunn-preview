@@ -1968,10 +1968,11 @@ html.no-glass .faq-item {
   .bunn-heading {
     font-size: 34px;
   }
-  /* Footer edges track the cityscape card edges (12px at this bp). */
+  /* Footer edges track the cityscape SKYLINE (12px card edge + ~0.5vw
+     dot inset) at this bp. */
   .site-footer {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: calc(12px + 0.5vw);
+    padding-right: calc(12px + 0.5vw);
   }
 }
 
@@ -1984,7 +1985,11 @@ html.no-glass .faq-item {
      line-box is taller (desktop). */
   align-items: flex-start;
   justify-content: space-between;
-  padding: 15px;
+  /* Top/bottom 15px (gap to the picture). Left/right = the cityscape
+     section's 15px edge PLUS ~0.5vw so the logo + address line up with
+     the SKYLINE DOTS, which sit ~0.5% of the card width inside the card
+     edge. The vw term tracks that inset as the card scales. */
+  padding: 15px calc(15px + 0.5vw);
   background: var(--bg);
 }
 
@@ -2262,7 +2267,9 @@ html.no-glass .faq-item {
   /* ── Footer — one-line address, edges aligned to the cityscape
      card (10px L/R = cityscape mobile padding) ─────────────── */
   .site-footer {
-    padding: 15px 10px;
+    /* L/R = 10px card edge + ~0.5vw so logo/address hug the skyline
+       dots (the dot inset is only ~2px here, so the nudge is tiny). */
+    padding: 15px calc(10px + 0.5vw);
     overflow: hidden;            /* never let the line force page scroll */
   }
   .site-footer__text {
