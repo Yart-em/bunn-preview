@@ -280,6 +280,15 @@
   }
 }
 
+/* Submit error message (shown if the lead fails to save). */
+.contact-error {
+  margin: -4px 0 0;
+  font-family: 'Satoshi', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #c0143c;
+}
+
 @media (max-width: 1024px) {
   .contact-panel,
   .contact-prelayers {

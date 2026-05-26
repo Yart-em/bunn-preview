@@ -38,10 +38,18 @@ const DIAL_CODES: { code: string; label: string }[] = [
   { code: '+351', label: '🇵🇹 +351' },
 ];
 
+/* Public Edge Function that writes the lead into the bunn DB
+   (htizvoobwdyoviqrfgba → realestate_leads) using the service-role key
+   server-side, so no Supabase key ships in this page. */
+const SUBMIT_LEAD_URL =
+  'https://htizvoobwdyoviqrfgba.supabase.co/functions/v1/submit-lead';
+
 export default function ContactPopup() {
   const [open, setOpen] = useState(false);
   const [dial, setDial] = useState('+971');
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'sending' | 'error' | 'sent'>(
+    'idle',
+  );
 
   const openRef = useRef(false);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -147,7 +155,7 @@ export default function ContactPopup() {
         busyRef.current = false;
         /* Restore the form for the next open, now that the panel is
            off-screen (no flash of the form during the close slide). */
-        setSubmitted(false);
+        setStatus('idle');
       },
     });
   }, []);
@@ -227,7 +235,7 @@ export default function ContactPopup() {
         </button>
 
         <div className="contact-panel-inner">
-          {submitted ? (
+          {status === 'sent' ? (
             <div className="contact-thanks">
               <span className="contact-thanks-check" aria-hidden="true">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
@@ -252,9 +260,32 @@ export default function ContactPopup() {
 
           <form
             className="contact-form"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              setSubmitted(true);
+              const fd = new FormData(e.currentTarget);
+              const payload = {
+                name: String(fd.get('name') || '').trim(),
+                position: String(fd.get('position') || '').trim(),
+                email: String(fd.get('email') || '').trim(),
+                dial_code: dial,
+                phone: String(fd.get('phone') || '').trim(),
+                source:
+                  typeof window !== 'undefined'
+                    ? window.location.pathname
+                    : '',
+              };
+              setStatus('sending');
+              try {
+                const res = await fetch(SUBMIT_LEAD_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload),
+                });
+                if (!res.ok) throw new Error(String(res.status));
+                setStatus('sent');
+              } catch {
+                setStatus('error');
+              }
             }}
           >
             <input
@@ -263,6 +294,7 @@ export default function ContactPopup() {
               name="name"
               placeholder="Your name"
               autoComplete="name"
+              required
             />
             <input
               className="contact-input contact-anim"
@@ -278,6 +310,7 @@ export default function ContactPopup() {
               name="email"
               placeholder="Email"
               autoComplete="email"
+              required
             />
 
             <div className="contact-phone contact-anim">
@@ -301,6 +334,12 @@ export default function ContactPopup() {
                 autoComplete="tel"
               />
             </div>
+
+            {status === 'error' && (
+              <p className="contact-error" role="alert">
+                Something went wrong. Please try again.
+              </p>
+            )}
 
             <div className="contact-submit contact-anim">
               <BorderGlow
@@ -333,8 +372,11 @@ export default function ContactPopup() {
                     type="submit"
                     className="cta-fab cta-fab--glow"
                     aria-label="Get in touch"
+                    disabled={status === 'sending'}
                   >
-                    <span className="cta-fab__label">GET IN TOUCH</span>
+                    <span className="cta-fab__label">
+                      {status === 'sending' ? 'SENDING…' : 'GET IN TOUCH'}
+                    </span>
                     <span className="cta-fab__icon" aria-hidden="true">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                         <path
