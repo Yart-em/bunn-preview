@@ -3,7 +3,17 @@
   "redirects": [
     {
       "source": "/",
-      "destination": "/uaerealeastate",
+      "destination": "/uaerealestate",
+      "permanent": false
+    },
+    {
+      "source": "/uaerealeastate",
+      "destination": "/uaerealestate",
+      "permanent": false
+    },
+    {
+      "source": "/uaerealeastate/:path*",
+      "destination": "/uaerealestate/:path*",
       "permanent": false
     }
   ]

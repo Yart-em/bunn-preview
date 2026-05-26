@@ -3,14 +3,14 @@
    immediately and is replaced once the file lands. */
 @font-face {
   font-family: 'Engravers Gothic';
-  src: url('/uaerealeastate/fonts/EngraversGothicBT-Regular.woff2') format('woff2');
+  src: url('/uaerealestate/fonts/EngraversGothicBT-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Engravers Gothic';
-  src: url('/uaerealeastate/fonts/EngraversGothicBT-Bold.woff2') format('woff2');
+  src: url('/uaerealestate/fonts/EngraversGothicBT-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -1155,7 +1155,7 @@ h1 {
   top: 50%;
   width: 34%;
   aspect-ratio: 715 / 1056;
-  background: url('/uaerealeastate/bg-cards.svg') no-repeat center / contain;
+  background: url('/uaerealestate/bg-cards.svg') no-repeat center / contain;
   pointer-events: none;
   z-index: 0;
 }

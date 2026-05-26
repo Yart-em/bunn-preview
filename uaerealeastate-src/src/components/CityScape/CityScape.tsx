@@ -24,7 +24,7 @@ import BlurText from '../BlurText/BlurText';
 import './CityScape.css';
 
 /* ── Tunables ─────────────────────────────────────────────── */
-const SRC_PATH = '/uaerealeastate/photos/dubai-cityscape-v3.png';
+const SRC_PATH = '/uaerealestate/photos/dubai-cityscape-v3.png';
 
 /* Sampling grid in DISPLAY pixels (= dot spacing). Tighter
    spacing = denser dots — at 3 px the field has ~2 × the

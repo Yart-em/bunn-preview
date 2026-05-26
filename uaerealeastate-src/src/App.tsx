@@ -210,12 +210,12 @@ const WordReveal = ({
  *  catch-all "52+ countries" entry has no portrait — it's a sweep
  *  rather than a single buyer. */
 const COUNTRIES: { name: string; photo: string | null }[] = [
-  { name: 'China', photo: '/uaerealeastate/portraits/beijing.png' },
-  { name: 'Ukraine', photo: '/uaerealeastate/portraits/kyiv.png' },
-  { name: 'Nigeria', photo: '/uaerealeastate/portraits/lagos.png' },
-  { name: 'Pakistan', photo: '/uaerealeastate/portraits/karachi.png' },
-  { name: 'Lebanon', photo: '/uaerealeastate/portraits/beirut.png' },
-  { name: 'Brazil', photo: '/uaerealeastate/portraits/rio.png' },
+  { name: 'China', photo: '/uaerealestate/portraits/beijing.png' },
+  { name: 'Ukraine', photo: '/uaerealestate/portraits/kyiv.png' },
+  { name: 'Nigeria', photo: '/uaerealestate/portraits/lagos.png' },
+  { name: 'Pakistan', photo: '/uaerealestate/portraits/karachi.png' },
+  { name: 'Lebanon', photo: '/uaerealestate/portraits/beirut.png' },
+  { name: 'Brazil', photo: '/uaerealestate/portraits/rio.png' },
   { name: '52+ countries', photo: null },
 ];
 const COUNTRY_ROTATE_MS = 2200;
@@ -235,19 +235,19 @@ const ROTATOR_STAGGER = 0.025;
  * disabled. Uncomment when re-enabling the section.
 const BUYER_PERSONAS: InfiniteMenuItem[] = [
   {
-    image: '/uaerealeastate/portraits/mrs-sharma.jpg',
+    image: '/uaerealestate/portraits/mrs-sharma.jpg',
     name: 'Nigerian capped by capital controls',
     sub: 'Tunde, 38. Oil services executive in Lagos.',
     body: 'The Central Bank of Nigeria caps personal outbound transfers at $10,000 a year. The villa he reserved in Dubai Hills is AED 8.5M. Sending it through legal SWIFT channels would mean splitting the wire across his wife, his brother, and two business partners, and waiting four years.',
   },
   {
-    image: '/uaerealeastate/portraits/mr-sharma.jpg',
+    image: '/uaerealestate/portraits/mr-sharma.jpg',
     name: 'Argentine with dollar savings outside the peso',
     sub: 'Mateo, 39. Tax lawyer in Buenos Aires.',
     body: 'The official outbound channel caps him at $200 a month at the official rate, which is about 60% below the parallel market. Sending pesos for AED through any legal channel is uneconomic. His real savings have been in USDC since 2020. The Dubai unit he wants is $385K, payable from that wallet.',
   },
   {
-    image: '/uaerealeastate/portraits/portrait.jpg',
+    image: '/uaerealestate/portraits/portrait.jpg',
     name: 'Ukrainian with frozen banking rails',
     sub: 'Olena, 42. Tech founder in Kyiv.',
     body: 'Wartime capital controls limit personal spending abroad. International wire transfers from Ukrainian banks face multi-week delays and strict documentation. Her apartment deposit in JVC is due in 10 days.',
@@ -288,35 +288,35 @@ const CAROUSEL_SLIDES: SlideData[] = [
     subtitle:
       'A 2.3% FX spread plus a fresh source-of-funds review',
     country: 'Portugal',
-    image: '/uaerealeastate/rotator/sofia.jpg',
+    image: '/uaerealestate/rotator/sofia.jpg',
   },
   {
     label: 'FOR DMITRY',
     subtitle:
       "Passport triggers a 3–6-week manual sanctions review at his Cyprus bank",
     country: 'Russia with Cyprus resi',
-    image: '/uaerealeastate/rotator/dmitry.jpg',
+    image: '/uaerealestate/rotator/dmitry.jpg',
   },
   {
     label: 'FOR ARJUN',
     subtitle:
       "RBI’s LRS caps at $250,000 and loses 20% TCS above ₹10 lakh",
     country: 'India',
-    image: '/uaerealeastate/rotator/arjun.jpg',
+    image: '/uaerealestate/rotator/arjun.jpg',
   },
   {
     label: 'FOR WEI',
     subtitle:
       'SAFE caps him at $50,000 a year and bars property abroad as an approved purpose',
     country: 'China',
-    image: '/uaerealeastate/rotator/wei.jpg',
+    image: '/uaerealestate/rotator/wei.jpg',
   },
   {
     label: 'FOR HASSAN',
     subtitle:
       'Bank queueing outbound real-estate transfers 30 to 60 days',
     country: 'Egypt',
-    image: '/uaerealeastate/rotator/hassan.jpg',
+    image: '/uaerealestate/rotator/hassan.jpg',
   },
 ];
 
@@ -1068,7 +1068,7 @@ function App() {
     <main className="page">
       <header className="topbar">
         <div className="brand">
-          <img src="/uaerealeastate/logos/bunn-topbar-logo.svg" alt="BUNN" className="brand__logo" />
+          <img src="/uaerealestate/logos/bunn-topbar-logo.svg" alt="BUNN" className="brand__logo" />
         </div>
       </header>
 
@@ -1365,17 +1365,17 @@ function App() {
                   <div className="compliance__logos">
                     <img
                       className="compliance__logo compliance__logo--dld"
-                      src="/uaerealeastate/logos/images (5) 1.png"
+                      src="/uaerealestate/logos/images (5) 1.png"
                       alt="Dubai Land Department"
                     />
                     <img
                       className="compliance__logo compliance__logo--cb"
-                      src="/uaerealeastate/regulators/cb-uae.png"
+                      src="/uaerealestate/regulators/cb-uae.png"
                       alt="Central Bank of the UAE"
                     />
                     <img
                       className="compliance__logo compliance__logo--vara"
-                      src="/uaerealeastate/regulators/vara.png"
+                      src="/uaerealestate/regulators/vara.png"
                       alt="VARA — Virtual Assets Regulatory Authority"
                     />
                   </div>
@@ -1742,17 +1742,17 @@ function App() {
           <span className="logos-group__label">Fully Compliant</span>
           <div className="logos-group__row">
             <img
-              src="/uaerealeastate/regulators/vara.png"
+              src="/uaerealestate/regulators/vara.png"
               alt="VARA — Virtual Assets Regulatory Authority"
               className="logos-group__logo"
             />
             <img
-              src="/uaerealeastate/regulators/cb-uae.png"
+              src="/uaerealestate/regulators/cb-uae.png"
               alt="Central Bank of the UAE"
               className="logos-group__logo"
             />
             <img
-              src="/uaerealeastate/logos/images (5) 1.png"
+              src="/uaerealestate/logos/images (5) 1.png"
               alt="Dubai Land Department"
               className="logos-group__logo"
             />
@@ -1762,22 +1762,22 @@ function App() {
           <span className="logos-group__label">In Proud Partnership With</span>
           <div className="logos-group__row">
             <img
-              src="/uaerealeastate/logos/blackrock 1.png"
+              src="/uaerealestate/logos/blackrock 1.png"
               alt="BlackRock"
               className="logos-group__logo"
             />
             <img
-              src="/uaerealeastate/logos/Fidelity_Investments_vector_logo 1.png"
+              src="/uaerealestate/logos/Fidelity_Investments_vector_logo 1.png"
               alt="Fidelity Investments"
               className="logos-group__logo logos-group__logo--fidelity"
             />
             <img
-              src="/uaerealeastate/logos/bridge 1.png"
+              src="/uaerealestate/logos/bridge 1.png"
               alt="Bridge"
               className="logos-group__logo logos-group__logo--bridge"
             />
             <img
-              src="/uaerealeastate/logos/okx 1.svg"
+              src="/uaerealestate/logos/okx 1.svg"
               alt="OKX"
               className="logos-group__logo"
             />
@@ -2083,7 +2083,7 @@ function App() {
       {/* ── Footer ─────────────────────────────────────────── */}
       <footer className="site-footer">
         <img
-          src="/uaerealeastate/logos/bunn-footer-logo.svg"
+          src="/uaerealestate/logos/bunn-footer-logo.svg"
           alt="BUNN"
           className="site-footer__logo"
         />

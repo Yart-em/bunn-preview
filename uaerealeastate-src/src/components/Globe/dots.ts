@@ -102,7 +102,7 @@ function scatterFor(target: THREE.Vector3): [number, number, number] {
  * Also generates per-dot scatter positions and delays for the entry
  * animation. Returns null until the mask has loaded.
  */
-export function useGlobeDots(maskUrl: string = '/uaerealeastate/earth-mask.png'): GlobeDots | null {
+export function useGlobeDots(maskUrl: string = '/uaerealestate/earth-mask.png'): GlobeDots | null {
   const sampler = useLandMask(maskUrl);
 
   return useMemo<GlobeDots | null>(() => {
