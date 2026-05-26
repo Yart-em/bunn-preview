@@ -1362,6 +1362,13 @@ h1 {
   height: 31.5px;
 }
 
+/* Zand mark (icon + wordmark) — a touch taller for presence as the
+   lead "Powered with" logo on the /aedrealestate page. Mobile uses the
+   shared clamp below. */
+.logos-group__logo--zand {
+  height: 34px;
+}
+
 /* ── Shared canvas — carousel + brokers ─────────────────── */
 /* Continuous pink gradient that spans both the carousel and
    the brokers sections so there is no visible seam between
