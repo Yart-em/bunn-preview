@@ -1766,9 +1766,7 @@ function App() {
           </div>
         </div>
         <div className="logos-group">
-          <span className="logos-group__label">
-            {IS_AED ? 'Powered with' : 'In Proud Partnership With'}
-          </span>
+          <span className="logos-group__label">Powered by</span>
           <div className="logos-group__row">
             {IS_AED ? (
               <img
