@@ -220,17 +220,14 @@
   margin-top: clamp(20px, 3vw, 36px);
 }
 /* In-form override: not absolutely-positioned like the cityscape
-   slot; sits inline in the form flow. The BorderGlow's default
-   1px border + stacked dark drop-shadow blend into the cityscape
-   dots but read as a hard ring on the white panel — strip them so
-   the pill is clean, matching how the last-block button looks. */
+   slot; sits inline in the form flow. Keep the BorderGlow's default
+   border + drop-shadow (do NOT strip them) so the glow-border effect
+   matches every other CTA on the page. */
 .border-glow-card.contact-cta-glow {
   position: relative;
   width: 270px;
   height: 56px;
   pointer-events: auto;
-  border: none;
-  box-shadow: none;
 }
 /* Glow layers paint normally over the white panel (the default
    plus-lighter blend would erase the white halo on white). */
