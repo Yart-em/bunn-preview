@@ -41,6 +41,7 @@ const DIAL_CODES: { code: string; label: string }[] = [
 export default function ContactPopup() {
   const [open, setOpen] = useState(false);
   const [dial, setDial] = useState('+971');
+  const [submitted, setSubmitted] = useState(false);
 
   const openRef = useRef(false);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -144,6 +145,9 @@ export default function ContactPopup() {
       overwrite: 'auto',
       onComplete: () => {
         busyRef.current = false;
+        /* Restore the form for the next open, now that the panel is
+           off-screen (no flash of the form during the close slide). */
+        setSubmitted(false);
       },
     });
   }, []);
@@ -223,11 +227,36 @@ export default function ContactPopup() {
         </button>
 
         <div className="contact-panel-inner">
+          {submitted ? (
+            <div className="contact-thanks">
+              <span className="contact-thanks-check" aria-hidden="true">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M20 6L9 17l-5-5"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <p className="contact-thanks-text">
+                Thanks, we will be in touch soon.
+              </p>
+            </div>
+          ) : (
+          <>
           <h2 className="contact-heading contact-anim">
             Let&rsquo;s get to know each other
           </h2>
 
-          <form className="contact-form" onSubmit={(e) => e.preventDefault()}>
+          <form
+            className="contact-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setSubmitted(true);
+            }}
+          >
             <input
               className="contact-input contact-anim"
               type="text"
@@ -322,6 +351,8 @@ export default function ContactPopup() {
               </BorderGlow>
             </div>
           </form>
+          </>
+          )}
         </div>
       </aside>
     </div>

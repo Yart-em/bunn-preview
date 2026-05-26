@@ -240,6 +240,46 @@
   color: #000;
 }
 
+/* ── Success state — shown after the form is submitted ──────── */
+.contact-thanks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: clamp(18px, 3vw, 30px);
+  animation: contact-thanks-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.contact-thanks-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(56px, 7vw, 80px);
+  height: clamp(56px, 7vw, 80px);
+  border-radius: 50%;
+  background: #ff9bb4; /* project pink */
+  color: #fff;
+}
+.contact-thanks-text {
+  margin: 0;
+  font-family: 'Engravers Gothic', serif;
+  font-weight: 700;
+  font-size: clamp(22px, 3.6vw, 46px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--ink, #0e0e10);
+}
+@keyframes contact-thanks-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 1024px) {
   .contact-panel,
   .contact-prelayers {
