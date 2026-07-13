@@ -343,12 +343,6 @@ const BROKER_STEPS: { text: string; width: number }[] = [
   { text: "The funds settle directly to the developer's escrow", width: 200 },
 ];
 
-/* The /aedrealestate copy is a runtime mirror of the same build, so
-   page-specific content branches on the URL path (checked at runtime,
-   not build time, so it survives the mirror's string re-base). */
-const IS_AED =
-  typeof window !== 'undefined' &&
-  window.location.pathname.includes('aedrealestate');
 
 function App() {
   const headingContainerRef = useRef<HTMLDivElement | null>(null);
@@ -1768,19 +1762,11 @@ function App() {
         <div className="logos-group">
           <span className="logos-group__label">Powered by</span>
           <div className="logos-group__row">
-            {IS_AED ? (
-              <img
-                src="/uaerealestate/logos/zand.png"
-                alt="Zand"
-                className="logos-group__logo logos-group__logo--zand"
-              />
-            ) : (
-              <img
-                src="/uaerealestate/logos/blackrock 1.png"
-                alt="BlackRock"
-                className="logos-group__logo"
-              />
-            )}
+            <img
+              src="/uaerealestate/logos/blackrock 1.png"
+              alt="BlackRock"
+              className="logos-group__logo"
+            />
             <img
               src="/uaerealestate/logos/Fidelity_Investments_vector_logo 1.png"
               alt="Fidelity Investments"
