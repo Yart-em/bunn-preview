@@ -2,11 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
-      "source": "/",
-      "destination": "/uaerealestate",
-      "permanent": false
-    },
-    {
       "source": "/uaerealeastate",
       "destination": "/uaerealestate",
       "permanent": false

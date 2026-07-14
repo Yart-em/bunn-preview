@@ -1,332 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BUNN on-chain bank</title>
-    <meta name="description" content="Use crypto as money with BUNN">
-    <link rel="icon" href="favicon.png">
-    <style>
-      @font-face {
-        font-family: 'Engravers Gothic';
-        src: url('fonts/EngraversGothic-Bold.woff2') format('woff2'),
-             url('fonts/EngraversGothic-Bold.otf') format('opentype');
-        font-weight: 700;
-        font-style: normal;
-        font-display: swap;
-      }
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BUNN — Payment software for POS terminals & online acquirers</title>
+    <meta
+      name="description"
+      content="BUNN builds the terminal and acquiring software that approves more transactions, fails less, and ships in weeks. Card payments, terminals, and acquiring."
+    />
 
-      *, *::before, *::after {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+    <!-- Open Graph — rich link previews (Telegram, WhatsApp, etc.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bunn.world" />
+    <meta property="og:title" content="BUNN — Payment software for POS terminals & online acquirers" />
+    <meta property="og:description" content="Terminal and acquiring software that approves more transactions, fails less, and ships in weeks." />
+    <meta property="og:image" content="https://bunn.world/og-image.png" />
 
-      html, body {
-        height: 100%;
-        overflow: hidden;
-      }
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BUNN — Payment software for POS terminals & online acquirers" />
+    <meta name="twitter:description" content="Terminal and acquiring software that approves more transactions, fails less, and ships in weeks." />
+    <meta name="twitter:image" content="https://bunn.world/og-image.png" />
 
-      body {
-        font-family: 'Engravers Gothic', sans-serif;
-        font-weight: 700;
-        background: #ffffff;
-        color: rgb(39, 34, 34);
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-
-      .canvas {
-        position: relative;
-        width: 100%;
-        height: 94vh;
-        overflow: hidden;
-      }
-
-      .logo-wrap {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 10vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 20;
-        padding: 28px 40px 0;
-      }
-
-      .logo-wrap img {
-        display: block;
-        width: 140px;
-        height: auto;
-        object-fit: contain;
-      }
-
-      .heading {
-        position: absolute;
-        top: calc(26.5% + 30px);
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 2;
-        text-align: center;
-        text-transform: uppercase;
-        line-height: 0.70;
-        pointer-events: none;
-        white-space: nowrap;
-        font-size: 3.72vw;
-      }
-
-      .heading .dim {
-        color: rgba(39, 34, 34, 0.6);
-      }
-
-      .video-wrap {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 5;
-        pointer-events: none;
-      }
-
-      .video-wrap video,
-      .video-wrap canvas {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center bottom;
-        display: block;
-      }
-
-      .video-wrap video::-webkit-media-controls {
-        display: none !important;
-      }
-      .video-wrap video::-webkit-media-controls-start-playback-button {
-        display: none !important;
-        -webkit-appearance: none;
-      }
-      .video-wrap video::-webkit-media-controls-panel {
-        display: none !important;
-      }
-      .video-wrap video::-webkit-media-controls-overlay-play-button {
-        display: none !important;
-      }
-
-      .footer-section {
-        height: 6vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        white-space: nowrap;
-        font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-        font-weight: 700;
-        font-size: 13px;
-        color: rgba(39, 34, 34, 0.5);
-        letter-spacing: 0.06em;
-      }
-
-      .footer-r {
-        font-size: 8px;
-        position: relative;
-        top: -3px;
-        margin: 0 4px 0 1px;
-      }
-
-      @media (min-width: 810px) and (max-width: 1198px) {
-        .heading {
-          font-size: 5.6vw;
-        }
-        .logo-wrap {
-          padding: 22px 30px 0;
-        }
-        .logo-wrap img {
-          width: 120px;
-        }
-      }
-
-      @media (max-width: 809px) {
-        .heading {
-          font-size: 7.5vw;
-          white-space: nowrap;
-        }
-        .logo-wrap {
-          padding: 16px 20px 0;
-        }
-        .logo-wrap img {
-          width: 100px;
-        }
-        .footer-section {
-          font-size: 11px;
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 6vh;
-          height: 6dvh;
-          background: #ffffff;
-          z-index: 30;
-        }
-        .canvas {
-          height: 94vh;
-          height: 94dvh;
-          margin-bottom: 6vh;
-          margin-bottom: 6dvh;
-        }
-      }
-
-      @media (max-width: 400px) {
-        .heading {
-          font-size: 6.5vw;
-        }
-      }
-    </style>
+    <!-- Satoshi (contact popup body) + DM Sans (page). -->
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/assets/software-Dk-V0rDX.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/software-DxOQq_q-.css">
   </head>
   <body>
-
-    <div class="canvas">
-      <div class="logo-wrap">
-        <img src="logo.svg" alt="BUNN" loading="eager">
-      </div>
-      <div class="heading">
-        <span class="dim">USE CRYPTO</span><br>
-        <span class="dim">AS </span>MONEY<span class="dim"> WITH </span>BUNN
-      </div>
-      <div class="video-wrap">
-        <video autoplay loop muted playsinline webkit-playsinline preload="auto" disableRemotePlayback>
-          <source src="coins.mov" type='video/quicktime; codecs="hvc1"'>
-          <source src="coins.webm" type="video/webm">
-        </video>
-      </div>
-    </div>
-
-    <div class="footer-section">
-      BUNN<span class="footer-r">&reg;</span> on-chain bank. 2026
-    </div>
-
-    <script>
-      (function() {
-        var video = document.querySelector('video');
-        if (!video) return;
-
-        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-        if (isIOS) {
-          var sources = video.querySelectorAll('source');
-          sources.forEach(function(s) { s.remove(); });
-          var src = document.createElement('source');
-          src.src = 'coins_1080.mov';
-          src.type = 'video/quicktime';
-          video.appendChild(src);
-
-          var canvasEl = document.createElement('canvas');
-          var wrap = document.querySelector('.video-wrap');
-          wrap.appendChild(canvasEl);
-
-          canvasEl.style.position = 'absolute';
-          canvasEl.style.top = '0';
-          canvasEl.style.left = '0';
-          canvasEl.style.width = '100%';
-          canvasEl.style.height = '100%';
-
-          video.style.position = 'absolute';
-          video.style.width = '1px';
-          video.style.height = '1px';
-          video.style.opacity = '0';
-          video.style.pointerEvents = 'none';
-          video.style.zIndex = '-1';
-
-          var ctx = canvasEl.getContext('2d');
-          var rafId = null;
-          var vidW = 1920, vidH = 1080;
-
-          function resizeCanvas() {
-            var dpr = window.devicePixelRatio || 1;
-            var rect = wrap.getBoundingClientRect();
-            var cw = rect.width;
-            var ch = rect.height;
-            if (ch < window.innerHeight * 0.5) {
-              ch = window.innerHeight * 0.94;
-            }
-            canvasEl.width = Math.round(cw * dpr);
-            canvasEl.height = Math.round(ch * dpr);
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          }
-          resizeCanvas();
-          window.addEventListener('resize', resizeCanvas);
-          window.addEventListener('orientationchange', function() {
-            setTimeout(resizeCanvas, 200);
-          });
-
-          function drawLoop() {
-            if (!video.paused && !video.ended) {
-              var rect = wrap.getBoundingClientRect();
-              var cw = rect.width;
-              var ch = rect.height;
-              if (ch < window.innerHeight * 0.5) {
-                ch = window.innerHeight * 0.94;
-              }
-              var scale = Math.max(cw / vidW, ch / vidH);
-              var dw = vidW * scale;
-              var dh = vidH * scale;
-              var dx = (cw - dw) / 2;
-              var dy = ch - dh;
-              ctx.clearRect(0, 0, cw, ch);
-              ctx.drawImage(video, dx, dy, dw, dh);
-            }
-            rafId = requestAnimationFrame(drawLoop);
-          }
-
-          function startDrawing() {
-            if (!rafId) {
-              rafId = requestAnimationFrame(drawLoop);
-            }
-          }
-
-          function startPlayback() {
-            video.muted = true;
-            video.play().then(startDrawing).catch(function() {
-              ['touchstart', 'touchend', 'click'].forEach(function(evt) {
-                document.addEventListener(evt, function handler() {
-                  video.muted = true;
-                  video.play().then(startDrawing);
-                  document.removeEventListener(evt, handler);
-                }, { once: true, passive: true });
-              });
-            });
-          }
-
-          video.addEventListener('loadeddata', startPlayback);
-          video.load();
-
-          document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && video.paused) {
-              video.muted = true;
-              video.play().then(startDrawing);
-            }
-          });
-
-        } else {
-          video.defaultMuted = true;
-          video.muted = true;
-          video.play().catch(function() {
-            document.addEventListener('touchstart', function handler() {
-              video.play();
-              document.removeEventListener('touchstart', handler);
-            }, { once: true });
-          });
-
-          document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && video.paused) {
-              video.muted = true;
-              video.play();
-            }
-          });
-        }
-      })();
-    </script>
-
+    <div id="root"></div>
   </body>
 </html>
