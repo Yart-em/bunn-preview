@@ -1,4 +1,13 @@
-import { Fragment, Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Fragment,
+  Suspense,
+  lazy,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
 // Lazy-loaded: pulls in Three.js + R3F + drei. Code-splitting it (and
 // BrokersCoin below) keeps that ~600 KB out of the initial bundle so
@@ -344,16 +353,23 @@ const BROKER_STEPS: { text: string; width: number }[] = [
 ];
 
 
-function App() {
-  const headingContainerRef = useRef<HTMLDivElement | null>(null);
-  const cardRef = useRef<HTMLDivElement | null>(null);
+/** Scroll-driven hero scene — the globe canvas plus the two fixed
+ *  statement headings. Owns ALL the per-frame scroll state, so
+ *  scrubbing through the hero re-renders only this small subtree.
+ *  (Previously this state lived in <App/>, which meant the ENTIRE
+ *  ~2000-line tree — framer-motion rotator included — reconciled on
+ *  every scroll frame; that was the main source of scroll jank.)
+ *  Every element here is position:fixed and .hero creates no
+ *  stacking context, so rendering the headings inside the section
+ *  is visually identical to their previous sibling placement. */
+function HeroScrollScene({
+  headingContainerRef,
+  cardRef,
+}: {
+  headingContainerRef: RefObject<HTMLDivElement | null>;
+  cardRef: RefObject<HTMLDivElement | null>;
+}) {
   const globeWrapperRef = useRef<HTMLDivElement | null>(null);
-  const glassSurfaceRef = useRef<HTMLDivElement | null>(null);
-  const ctaFabRef = useRef<HTMLAnchorElement | null>(null);
-
-  const brokersGlassRef = useRef<HTMLDivElement | null>(null);
-  const brokersShadowRef = useRef<HTMLDivElement | null>(null);
-  const brokersCtaRef = useRef<HTMLAnchorElement | null>(null);
 
   const [sphereYOffset, setSphereYOffset] = useState(-0.4);
   const [sphereScale, setSphereScale] = useState(1);
@@ -420,9 +436,520 @@ function App() {
    *  starts AFTER the heading words have all settled in. */
   const [globeReady, setGlobeReady] = useState(false);
   useEffect(() => {
+    /* Warm the lazy three.js chunk immediately so it's parsed and
+     * ready by the time the 2 s mount delay elapses. */
+    import('./components/Globe/Globe');
     const t = setTimeout(() => setGlobeReady(true), GLOBE_MOUNT_DELAY_MS);
     return () => clearTimeout(t);
   }, []);
+  /** False once the (200 vh) canvas has scrolled fully above the
+   *  viewport — flips the R3F frameloop off so the GPU stops
+   *  re-rendering a globe nobody can see. */
+  const [globeOn, setGlobeOn] = useState(true);
+
+  /* Scroll-driven sphere geometry. Globe is anchored to the BOTTOM
+   * of the entire heading container (eyebrow + h1 + rotator) so it
+   * sits visually below all three lines, never overlapping the
+   * rotator. */
+  useLayoutEffect(() => {
+    const headingContainer = headingContainerRef.current;
+    const card = cardRef.current;
+    const globe = globeWrapperRef.current;
+    if (!headingContainer || !card || !globe) return;
+
+    const recalc = () => {
+      const vw = window.innerWidth;
+      const sy = window.scrollY;
+
+      /* The canvas fills the FULL viewport (top: 0, height:
+       * 100vh+) — see `.hero-globe` CSS. We drive the sphere's
+       * position by computing the world-space Y offset that lands
+       * the sphere center at the desired pixel Y inside the
+       * viewport-sized canvas. */
+      const headingDocBottom =
+        headingContainer.offsetTop + headingContainer.offsetHeight;
+      const initialSphereTopAbs =
+        headingDocBottom + DEFAULT_GAP_AFTER_HEADING_PX + DEFAULT_SPHERE_INSET_PX;
+      const sphereFinalTopAbs = DEFAULT_LOCK_TOP_PX + DEFAULT_SPHERE_INSET_PX;
+      /* LOCK happens once the glass card has scrolled fully out
+       * of the top of the viewport + a 35 px tail. Before then,
+       * the sphere lerps its TOP from initialSphereTopAbs →
+       * sphereFinalTopAbs and its DIAMETER from the initial to
+       * the final pct, with the scroll progress as the lerp
+       * parameter. Cards fade in only at lock. */
+      const cardDocBottom = card.offsetTop + card.offsetHeight;
+      const lockScrollPx = Math.max(1, cardDocBottom + 35);
+      const cappedProgress = clamp01(sy / lockScrollPx);
+      const nowLocked = sy >= lockScrollPx;
+
+      /* On phones, lift the globe 20px (applied to the lerped top so
+       * the initial + locked positions both shift up). */
+      const mobileGlobeLiftPx = vw <= 600 ? 20 : 0;
+      const sphereTopOnViewport =
+        lerp(initialSphereTopAbs, sphereFinalTopAbs, cappedProgress) -
+        mobileGlobeLiftPx;
+
+      /* Sphere size: percentages of viewport WIDTH the rendered
+       * sphere diameter should hit. Natural diameter (px, at
+       * sphereScale = 1, world radius = 1) =
+       *   canvasH / (cameraDistance × tanHalfFov). */
+      const canvasH = globe.offsetHeight;
+      const naturalDiameterPx = canvasH / (cameraDistance * tanHalfFov);
+      /* On phones the globe starts at 85 % of viewport width (vs
+       * 45 % on desktop) and finishes at 150 % for the full-bleed
+       * dissolve. */
+      const globeInitialPctEff = vw <= 600 ? 85 : DEFAULT_GLOBE_INITIAL_PCT;
+      const globeFinalPctEff = vw <= 600 ? 150 : DEFAULT_GLOBE_FINAL_PCT;
+      const desiredWidthVw = lerp(
+        globeInitialPctEff / 100,
+        globeFinalPctEff / 100,
+        cappedProgress,
+      );
+      const desiredWidthPx = desiredWidthVw * vw;
+      const nextScale = desiredWidthPx / naturalDiameterPx;
+      setSphereScale(nextScale);
+      const sphereRadiusPx = (naturalDiameterPx * nextScale) / 2;
+
+      /* Back out the world-Y translation that lands the sphere
+       * center at the desired canvas Y (canvas top = viewport
+       * top, since .hero-globe is fixed at top: 0). */
+      const projFactor = canvasH / (2 * tanHalfFov * cameraDistance);
+      const sphereCenterCanvasY = sphereTopOnViewport + sphereRadiusPx;
+      const dy = (canvasH / 2 - sphereCenterCanvasY) / projFactor;
+      setSphereYOffset(dy);
+
+      const vh = window.innerHeight;
+
+      /* Keep the dot-to-globe ratio constant across viewports.
+       * vw/vh are constant during scroll, so this only changes on
+       * resize — setState bails otherwise. */
+      const REF_ASPECT = 16 / 9;
+      const nextDotSize = Math.max(
+        0.003,
+        Math.min(0.014, 0.011 * (vw / vh / REF_ASPECT)),
+      );
+      setDotSize(nextDotSize);
+
+      /* Pin the globe at its locked position the moment the hero
+       * card scrolls off (= cards appear). The user then gets
+       * POST_LOCK_BUFFER pixels of consistent scroll BEFORE the
+       * scatter kicks in, and a further dissolveSpan of frozen
+       * scroll while the scatter plays out. After that the canvas
+       * resumes scrolling up off the top. */
+      const POST_LOCK_BUFFER = 600;
+      const dissolveSpan = vh;
+      const frozenWindow = POST_LOCK_BUFFER + dissolveSpan;
+      const rawOverlap = nowLocked ? sy - lockScrollPx : 0;
+      let effectiveOverlap: number;
+      let rawProgress = 0;
+      if (rawOverlap <= 0) {
+        effectiveOverlap = 0;
+      } else if (rawOverlap <= POST_LOCK_BUFFER) {
+        effectiveOverlap = 0;
+      } else if (rawOverlap <= frozenWindow) {
+        effectiveOverlap = 0;
+        rawProgress = (rawOverlap - POST_LOCK_BUFFER) / dissolveSpan;
+      } else {
+        effectiveOverlap = rawOverlap - frozenWindow;
+        rawProgress = 1;
+      }
+
+      globe.style.position = 'fixed';
+      globe.style.top = '0px';
+      globe.style.transform =
+        effectiveOverlap > 0 ? `translateY(${-effectiveOverlap}px)` : '';
+      /* Once the (200 vh) canvas has fully cleared the top of the
+       * viewport, hide it and stop the R3F frameloop — a fixed
+       * full-page WebGL layer costs compositing + GPU every frame
+       * even when all its content is off-screen / scattered.
+       * canvasH > 0 guards suspended/zero-size viewports (e.g.
+       * background tabs report 0 sizes; never hide there). */
+      const canvasGone = canvasH > 0 && effectiveOverlap >= canvasH;
+      globe.style.visibility = canvasGone ? 'hidden' : '';
+      setGlobeOn(!canvasGone);
+      setIsLocked(nowLocked);
+      const clampedDissolve = clamp01(rawProgress);
+      setDissolveProgress(clampedDissolve);
+      setPreLockProgress(clamp01(sy / lockScrollPx));
+
+      /* Statement heading state machine.
+       *   trigger      = dissolveProgress crosses 0.9
+       *   pin window   = 500 px of scroll AFTER trigger
+       *   leaving      = scroll past that window */
+      if (statementTriggerSyRef.current === null) {
+        /* Only fire the trigger while we're STILL in the scatter
+         * window (effectiveOverlap === 0 means the canvas is
+         * still pinned). Past that window the 67.3 % heading must
+         * never reappear. */
+        if (
+          clampedDissolve >= 0.9 &&
+          hasUserScrolledRef.current &&
+          effectiveOverlap === 0
+        ) {
+          statementTriggerSyRef.current = sy;
+          setStatementPhase('visible');
+        } else if (effectiveOverlap > 0) {
+          setStatementPhase('leaving');
+        }
+        setBunnPhase('hidden');
+        setUnpinOffsetPx(0);
+      } else {
+        const distance = sy - statementTriggerSyRef.current;
+        /* BUNN line appears 400 px after the 67.3 % heading was
+         * triggered; the same boolean drives the 67.3 % heading's
+         * "shifted" state. */
+        setBunnPhase(distance >= 400 ? 'visible' : 'hidden');
+        /* Unpin window — 100 px AFTER the BUNN appears, the block
+         * stops being pinned at viewport-centre and tracks scroll
+         * 1:1 via the --unpin CSS custom property. */
+        const UNPIN_THRESHOLD = 500;
+        setUnpinOffsetPx(
+          distance > UNPIN_THRESHOLD ? distance - UNPIN_THRESHOLD : 0,
+        );
+        if (distance < 0) {
+          if (clampedDissolve < 0.9) {
+            statementTriggerSyRef.current = null;
+            setStatementPhase('hidden');
+            setBunnPhase('hidden');
+          } else {
+            setStatementPhase('visible');
+          }
+        } else if (distance > UNPIN_THRESHOLD + window.innerHeight) {
+          setStatementPhase('leaving');
+        } else {
+          setStatementPhase('visible');
+        }
+      }
+    };
+
+    recalc();
+    const ro = new ResizeObserver(recalc);
+    ro.observe(headingContainer);
+    ro.observe(card);
+    const onScroll = () => {
+      hasUserScrolledRef.current = true;
+      recalc();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', recalc);
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(recalc);
+    }
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', recalc);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <>
+      <div
+        className={`hero-globe${isLocked ? ' hero-globe--locked' : ''}`}
+        aria-hidden="true"
+        ref={globeWrapperRef}
+      >
+        {globeReady && (
+          <Suspense fallback={null}>
+            <Globe
+              sphereYOffset={sphereYOffset}
+              sphereScale={sphereScale}
+              cardsVisible={isLocked}
+              cardSizePct={100}
+              dissolveProgress={dissolveProgress}
+              preLockProgress={preLockProgress}
+              dotSize={dotSize}
+              frameloop={globeOn ? 'always' : 'never'}
+            />
+          </Suspense>
+        )}
+      </div>
+
+      {/* Statement heading — fixed overlay pinned to viewport-
+          centre for ≈500 px of scroll after the globe scatters,
+          then released. */}
+      <h2
+        className={`statement-heading statement-heading--${statementPhase}${
+          bunnPhase === 'visible' ? ' statement-heading--shifted' : ''
+        }${unpinOffsetPx > 0 ? ' statement-heading--unpinned' : ''}`}
+        aria-hidden={statementPhase === 'hidden'}
+        style={{
+          '--unpin': `${unpinOffsetPx}px`,
+          ...(statementPhase !== 'visible' && statementPhase !== 'leaving'
+            ? { top: '-200vh' }
+            : {}),
+        } as React.CSSProperties}
+      >
+        67.3% of cross-border property buyers worry more about{' '}
+        <span className="statement-chip-target">
+          how to pay
+          <svg className="statement-chip-svg" aria-hidden="true">
+            <rect
+              className="statement-chip-rect"
+              rx="15"
+              ry="15"
+              pathLength="1"
+            />
+          </svg>
+        </span>{' '}
+        than about anything else
+      </h2>
+
+      <div
+        className={`bunn-heading bunn-heading--${bunnPhase}${
+          unpinOffsetPx > 0 ? ' bunn-heading--unpinned' : ''
+        }`}
+        aria-hidden={bunnPhase === 'hidden'}
+        style={{
+          '--unpin': `${unpinOffsetPx}px`,
+          ...(bunnPhase === 'hidden'
+            ? { top: '-200vh' }
+            : {}),
+        } as React.CSSProperties}
+      >
+        <StaggerText
+          text="BUNN unsticks the wire."
+          play={bunnPhase === 'visible'}
+          stagger={0.04}
+          direction="bottom"
+          transition={{
+            ease: [0.25, 0.1, 0.25, 1],
+            duration: 0.5,
+          }}
+          style={{ display: 'inline-block' }}
+        />
+        {' '}
+        <motion.span
+          className="bunn-heading__easy"
+          initial={{ x: -60, opacity: 0 }}
+          animate={
+            bunnPhase === 'visible'
+              ? { x: 0, opacity: 1 }
+              : { x: -60, opacity: 0 }
+          }
+          transition={{
+            x: { ease: 'backOut', duration: 0.55, delay: 0.96 },
+            opacity: { duration: 0.3, delay: 0.96 },
+          }}
+          style={{ display: 'inline-block' }}
+        >
+          Easy
+        </motion.span>
+      </div>
+    </>
+  );
+}
+
+/** Country rotator line — "ENABLE YOUR CLIENT FROM <chip> TO PAY".
+ *  Owns the 2.2 s rotation interval so each city swap re-renders
+ *  only this framer-motion subtree instead of the whole app (an
+ *  app-wide reconcile every 2.2 s caused visible hitches whenever
+ *  a swap landed mid-scroll). */
+function HeroRotator() {
+  const [countryIdx, setCountryIdx] = useState(0);
+  /* Two-step slide history — see the comments on the derived
+   * flags below for why the chip needs to know the previous TWO
+   * slides around the "52+ countries" entry. */
+  const prevCountryIdxRef = useRef(0);
+  const prevPrevCountryIdxRef = useRef(0);
+  useEffect(() => {
+    prevPrevCountryIdxRef.current = prevCountryIdxRef.current;
+    prevCountryIdxRef.current = countryIdx;
+  }, [countryIdx]);
+  const is52Current = COUNTRIES[countryIdx].name === '52+ countries';
+  const is52Prev =
+    COUNTRIES[prevCountryIdxRef.current].name === '52+ countries';
+  const is52PrevPrev =
+    COUNTRIES[prevPrevCountryIdxRef.current].name === '52+ countries';
+  /* Centred while the current OR previous slide is 52 — flips back
+   * on the swap after next, which is the transition that should
+   * read as the smooth 52-collapse. */
+  const isCentered = is52Current || is52Prev;
+  /* One more step keeps backOut easing for the layout shift right
+   * after the rotator class flips back from --centered. */
+  const transitionInvolves52 = is52Current || is52Prev || is52PrevPrev;
+  useEffect(() => {
+    const id = setInterval(
+      () => setCountryIdx((i) => (i + 1) % COUNTRIES.length),
+      COUNTRY_ROTATE_MS,
+    );
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <p
+      className={`rotator${isCentered ? ' rotator--centered' : ''}`}
+      style={
+        {
+          '--chip-y-offset': `${DEFAULT_CHIP_Y_OFFSET_PX}px`,
+        } as React.CSSProperties
+      }
+    >
+      {/* LayoutGroup synchronizes motion-layout animations across
+          the chip and the suffix so when the chip's width changes
+          on every city swap, the surrounding suffix ("TO PAY")
+          slides to its new position with the SAME timing. */}
+      <LayoutGroup>
+        <motion.span
+          layout
+          className="rotator-prefix"
+          transition={
+            transitionInvolves52
+              ? LAYOUT_BACKOUT_TRANSITION
+              : LAYOUT_INSTANT_TRANSITION
+          }
+        >
+          {['ENABLE', 'YOUR', 'CLIENT'].map((word, i) => (
+            <Fragment key={word}>
+              <motion.span
+                initial={BLUR_INITIAL}
+                animate={BLUR_ANIMATE}
+                transition={blurTransition(
+                  ROTATOR_START + i * ROTATOR_WORD_DELAY,
+                )}
+                style={{ display: 'inline-block' }}
+              >
+                {word}
+              </motion.span>
+              {' '}
+            </Fragment>
+          ))}
+        </motion.span>
+        {' '}
+        {/* "FROM" + chip + "TO PAY" grouped in rotator-tail
+            (white-space: nowrap): one line on desktop; on mobile
+            the group wraps as a unit. */}
+        <span className="rotator-tail">
+          <motion.span
+            layout
+            className="rotator-prefix rotator-in"
+            transition={
+              transitionInvolves52
+                ? LAYOUT_BACKOUT_TRANSITION
+                : LAYOUT_INSTANT_TRANSITION
+            }
+          >
+            <motion.span
+              initial={BLUR_INITIAL}
+              animate={BLUR_ANIMATE}
+              transition={blurTransition(
+                ROTATOR_START + 3 * ROTATOR_WORD_DELAY,
+              )}
+              style={{ display: 'inline-block' }}
+            >
+              FROM
+            </motion.span>
+          </motion.span>
+          {' '}
+          <motion.span
+            layout
+            className="rotator-name-chip"
+            initial={BLUR_INITIAL}
+            animate={BLUR_ANIMATE}
+            transition={{
+              ...LAYOUT_BACKOUT_TRANSITION,
+              ...blurTransition(
+                ROTATOR_START + 4 * ROTATOR_WORD_DELAY,
+              ),
+            }}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={countryIdx}
+                className="rotator-content"
+                layout
+                aria-hidden="true"
+              >
+                {/* Per-character RotatingText animation: every
+                    glyph slides y: 100% → 0 → -120% with a spring
+                    + stagger keyed off the LAST character. */}
+                <span className="rotator-name">
+                  {(() => {
+                    const cityName =
+                      COUNTRIES[countryIdx].name.toUpperCase();
+                    const chars = Array.from(cityName);
+                    return chars.map((char, i) => (
+                      <motion.span
+                        key={i}
+                        className="rotator-name-char"
+                        initial={{ y: '100%' }}
+                        animate={{ y: 0 }}
+                        exit={{ y: '-120%' }}
+                        transition={{
+                          ...ROTATOR_SPRING,
+                          delay: (chars.length - 1 - i) * ROTATOR_STAGGER,
+                        }}
+                      >
+                        {char === ' ' ? ' ' : char}
+                      </motion.span>
+                    ));
+                  })()}
+                </span>
+                {COUNTRIES[countryIdx].photo && (
+                  <motion.span
+                    className="rotator-photo-frame"
+                    aria-hidden="true"
+                    initial={{ y: '100%', opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: '-120%', opacity: 0 }}
+                    transition={{
+                      ...ROTATOR_SPRING,
+                      delay:
+                        COUNTRIES[countryIdx].name.length *
+                        ROTATOR_STAGGER,
+                    }}
+                  >
+                    <img
+                      className="rotator-photo"
+                      src={COUNTRIES[countryIdx].photo as string}
+                      alt=""
+                    />
+                  </motion.span>
+                )}
+              </motion.span>
+            </AnimatePresence>
+          </motion.span>
+          {/* "TO PAY" — layout-animated so it overshoots + bounces
+              back whenever the chip width changes. */}
+          <motion.span
+            layout
+            className="rotator-suffix"
+            transition={LAYOUT_BACKOUT_TRANSITION}
+          >
+            {' '}
+            {['TO', 'PAY'].map((word, i) => (
+              <Fragment key={word}>
+                <motion.span
+                  initial={BLUR_INITIAL}
+                  animate={BLUR_ANIMATE}
+                  transition={blurTransition(
+                    ROTATOR_START + (5 + i) * ROTATOR_WORD_DELAY,
+                  )}
+                  style={{ display: 'inline-block' }}
+                >
+                  {word}
+                </motion.span>
+                {i < 1 && ' '}
+              </Fragment>
+            ))}
+          </motion.span>
+        </span>
+      </LayoutGroup>
+    </p>
+  );
+}
+
+function App() {
+  const headingContainerRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const glassSurfaceRef = useRef<HTMLDivElement | null>(null);
+  const ctaFabRef = useRef<HTMLAnchorElement | null>(null);
+
+  const brokersGlassRef = useRef<HTMLDivElement | null>(null);
+  const brokersShadowRef = useRef<HTMLDivElement | null>(null);
+  const brokersCtaRef = useRef<HTMLAnchorElement | null>(null);
+
 
   /* ── Directional "ease into focus" (replaces the hard snap) ──
    * The old proximity Snap pulled the scroll to the NEAREST block
@@ -564,16 +1091,9 @@ function App() {
 
   /* All the layout/scroll knobs that used to be live-tunable
    * via the dev toggle bar are now baked-in constants — the
-   * user removed those sliders. The values are still read by
-   * the scroll recalc + card-positioning effects. */
-  const gapAfterHeading = DEFAULT_GAP_AFTER_HEADING_PX;
-  const chipYOffset = DEFAULT_CHIP_Y_OFFSET_PX;
-  const globeInitialPct = DEFAULT_GLOBE_INITIAL_PCT;
-  const cardSizePct = 100;
+   * scroll-driven ones moved into HeroScrollScene; only the
+   * card-positioning + info-section knobs remain here. */
   const cardBottomPadding = CARD_BOTTOM_PADDING_PX;
-  const globeFinalPct = DEFAULT_GLOBE_FINAL_PCT;
-  const lockTopPx = DEFAULT_LOCK_TOP_PX;
-  const sphereInsetPx = DEFAULT_SPHERE_INSET_PX;
 
   /* Info-card top/bottom padding (hardcoded, no longer in toggle panel) */
   const infoPadTB = 0;
@@ -599,54 +1119,6 @@ function App() {
 
 
 
-  /* Country rotator. */
-  const [countryIdx, setCountryIdx] = useState(0);
-  /* Track the previous country index so we can detect transitions
-   * INTO or OUT OF the "52+ countries" slide. Only those
-   * transitions trigger the prefix (left side) bounce — all other
-   * city swaps leave the prefix snapping instantly to its new
-   * Flexbox position. */
-  /* Two-step slide history. Needed so the chip / prefix can
-   * keep the bounce-back animation for THREE consecutive
-   * transitions around the "52+ countries" slide:
-   *   Rio → 52         (current = 52)
-   *   52 → Beijing     (prev    = 52)
-   *   Beijing → Kyiv   (prev's prev = 52)
-   * After that, the rotator is fully back to its default
-   * left-anchored state and prefix sits idle for the rest of
-   * the cycle. */
-  const prevCountryIdxRef = useRef(0);
-  const prevPrevCountryIdxRef = useRef(0);
-  useEffect(() => {
-    prevPrevCountryIdxRef.current = prevCountryIdxRef.current;
-    prevCountryIdxRef.current = countryIdx;
-  }, [countryIdx]);
-  const is52Current = COUNTRIES[countryIdx].name === '52+ countries';
-  const is52Prev =
-    COUNTRIES[prevCountryIdxRef.current].name === '52+ countries';
-  const is52PrevPrev =
-    COUNTRIES[prevPrevCountryIdxRef.current].name === '52+ countries';
-  /* The rotator-centred class is applied while the current OR
-   * previous slide is 52 — so the rotator stays centred across
-   * the Rio → 52 expand AND the post-52 settle on Beijing.
-   * It only flips back to default on the Beijing → Kyiv swap,
-   * which IS the transition the user wants to look like the
-   * smooth 52-collapse. */
-  const isCentered = is52Current || is52Prev;
-  /* `transitionInvolves52` adds ONE more step so the prefix
-   * keeps using backOut for the Beijing → Kyiv layout shift
-   * (when the rotator class flips from --centered back to
-   * default). After that, ordinary swaps fall back to the
-   * instant transition and the prefix stays put. */
-  const transitionInvolves52 = is52Current || is52Prev || is52PrevPrev;
-  useEffect(() => {
-    const id = setInterval(
-      () => setCountryIdx((i) => (i + 1) % COUNTRIES.length),
-      COUNTRY_ROTATE_MS,
-    );
-    return () => clearInterval(id);
-  }, []);
-
   /* S-curve cutout in the bottom-right corner of the glass card so
    * the round CTA appears to dissolve the surface around it. */
   useCardNotch(glassSurfaceRef, ctaFabRef, 35);
@@ -670,274 +1142,6 @@ function App() {
     mo.observe(glass, { attributes: true, attributeFilter: ['style'] });
     return () => mo.disconnect();
   }, []);
-
-  /* Scroll-driven sphere geometry. Globe is anchored to the BOTTOM
-   * of the entire heading container (eyebrow + h1 + rotator) so it
-   * sits visually below all three lines, never overlapping the
-   * rotator. */
-  useLayoutEffect(() => {
-    const headingContainer = headingContainerRef.current;
-    const card = cardRef.current;
-    const globe = globeWrapperRef.current;
-    if (!headingContainer || !card || !globe) return;
-
-    const recalc = () => {
-      const vw = window.innerWidth;
-      const sy = window.scrollY;
-
-      /* The canvas now fills the FULL viewport (top: 0,
-       * height: 100vh) — see `.hero-globe` CSS. So the sphere
-       * top can sit anywhere on screen without being clipped
-       * by a smaller frame; we drive its position by computing
-       * the world-space Y offset that lands the sphere center
-       * at the desired pixel Y inside the viewport-sized
-       * canvas. */
-      const headingDocBottom =
-        headingContainer.offsetTop + headingContainer.offsetHeight;
-      /* The sphere TOP's natural document-Y on first load.
-       * `gapAfterHeading` is the offset from the heading's
-       * bottom edge (default −20 → sphere top sits 20 px
-       * ABOVE the heading bottom). `sphereInsetPx` adds an
-       * extra downward shift so the sphere can be nudged
-       * lower without changing the gap. */
-      const initialSphereTopAbs =
-        headingDocBottom + gapAfterHeading + sphereInsetPx;
-      const sphereFinalTopAbs = lockTopPx + sphereInsetPx;
-      /* LOCK happens once the glass card has scrolled fully out
-       * of the top of the viewport + a 35 px tail (matching the
-       * original spec: "globe grows till the glass is outside
-       * and 35 px after"). Before then, the sphere lerps its
-       * TOP from initialSphereTopAbs → sphereFinalTopAbs and
-       * its DIAMETER from globeInitialPct → globeFinalPct,
-       * with the scroll progress as the lerp parameter. Cards
-       * fade in only at lock. */
-      const cardDocBottom = card.offsetTop + card.offsetHeight;
-      const lockScrollPx = Math.max(1, cardDocBottom + 35);
-      const cappedProgress = clamp01(sy / lockScrollPx);
-      const nowLocked = sy >= lockScrollPx;
-
-      /* Sphere TOP in viewport coords lerps from initial to
-       * final over the entire scroll-to-lock range. The canvas
-       * is `position: fixed; top: 0`, so the sphere's viewport
-       * Y is whatever we set here — it does NOT track scroll
-       * 1:1. This gives the sphere a smooth ride from
-       * initialSphereTopAbs at sy=0 → sphereFinalTopAbs at
-       * sy=lockScrollPx, paired with the size lerp below. */
-      /* On phones, lift the globe 20px (applied to the lerped top so
-       * the initial + locked positions both shift up). */
-      const mobileGlobeLiftPx = vw <= 600 ? 20 : 0;
-      const sphereTopOnViewport =
-        lerp(initialSphereTopAbs, sphereFinalTopAbs, cappedProgress) -
-        mobileGlobeLiftPx;
-
-      /* Sphere size: the user's `globeInitialPct` / `globeFinalPct`
-       * are percentages of viewport WIDTH that the rendered sphere
-       * diameter should hit. Sphere natural diameter (in PIXELS,
-       * at sphereScale = 1, world radius = 1) =
-       *   canvasH / (cameraDistance × tanHalfFov)
-       * because pixelRadius = worldRadius × canvasH /
-       *   (2 × depth × tanHalfFov). canvasH is the WRAPPER's
-       * actual offsetHeight — which is now 200 vh, taller than the
-       * viewport, so the locked sphere fits without bottom clip. */
-      const canvasH = globe.offsetHeight;
-      const naturalDiameterPx = canvasH / (cameraDistance * tanHalfFov);
-      /* On phones the globe should fill the view at its locked size —
-       * 150 % of viewport width — so it reads as a full-bleed globe
-       * rather than the smaller desktop framing. */
-      /* On phones the globe starts at 85 % of viewport width (vs 45 %
-       * on desktop) so it fills the gap between the heading and the
-       * bottom-pinned glass card, and finishes at 150 % for the
-       * full-bleed dissolve. */
-      const globeInitialPctEff = vw <= 600 ? 85 : globeInitialPct;
-      const globeFinalPctEff = vw <= 600 ? 150 : globeFinalPct;
-      const desiredWidthVw = lerp(
-        globeInitialPctEff / 100,
-        globeFinalPctEff / 100,
-        cappedProgress,
-      );
-      const desiredWidthPx = desiredWidthVw * vw;
-      const nextScale = desiredWidthPx / naturalDiameterPx;
-      setSphereScale(nextScale);
-      const sphereRadiusPx = (naturalDiameterPx * nextScale) / 2;
-
-      /* Sphere CENTER on canvas (canvas top = viewport top, since
-       * .hero-globe is `position: fixed; top: 0`) = sphere top
-       * viewport + radius. Back out the world-Y translation that
-       * lands the sphere center at that canvas Y.
-       *   pixel_y_from_center = -ndc_y × (canvasH / 2)
-       *   ndc_y               =  world_y / (depth × tanHalfFov)
-       * → world_y = (canvasH/2 − pixel_y) / projFactor
-       * where projFactor = canvasH / (2 × tanHalfFov × cameraDist). */
-      const projFactor = canvasH / (2 * tanHalfFov * cameraDistance);
-      const sphereCenterCanvasY = sphereTopOnViewport + sphereRadiusPx;
-      const dy = (canvasH / 2 - sphereCenterCanvasY) / projFactor;
-      setSphereYOffset(dy);
-
-      /* Globe canvas is `position: fixed; top: 0` ALWAYS. Pre-lock
-       * the sphere scales / moves smoothly via R3F state.
-       *
-       * Phase budget post-lock:
-       *   • rawOverlap ≤ dissolveStartOverlap
-       *       Canvas slides up normally with scroll.
-       *   • dissolveStartOverlap < rawOverlap ≤ +dissolveSpan
-       *       FROZEN — canvas position held at the moment the
-       *       sphere's bottom edge entered the viewport. The
-       *       additional scroll inside this band drives
-       *       dissolveProgress so all elements have time to
-       *       fly out while the camera stays still.
-       *   • rawOverlap > +dissolveSpan
-       *       Resume scrolling — the (now empty) canvas slides
-       *       further up so the user passes the hero. */
-      const vh = window.innerHeight;
-
-      /* Keep the dot-to-globe ratio constant across viewports (see
-       * the dotSize state above). The globe diameter is ∝ vw while a
-       * point's pixel size is ∝ canvas height (200 vh, i.e. ∝ vh), so
-       * the ratio tracks the viewport ASPECT. Normalize to 16:9 and
-       * clamp to a sane band. vw/vh are constant during scroll, so
-       * this only changes on resize — setState bails otherwise. */
-      const REF_ASPECT = 16 / 9;
-      const nextDotSize = Math.max(
-        0.003,
-        Math.min(0.014, 0.011 * (vw / vh / REF_ASPECT)),
-      );
-      setDotSize(nextDotSize);
-
-      /* Pin the globe at its locked position the moment the
-       * hero card scrolls off (= cards appear). The user then
-       * gets POST_LOCK_BUFFER pixels of consistent scroll
-       * BEFORE the scatter kicks in, and a further dissolveSpan
-       * of frozen scroll while the scatter plays out. Total
-       * frozen window = 50 + 1 vh. After that the canvas
-       * resumes scrolling up off the top. */
-      const POST_LOCK_BUFFER = 600;
-      const dissolveSpan = vh;
-      const frozenWindow = POST_LOCK_BUFFER + dissolveSpan;
-      const rawOverlap = nowLocked ? sy - lockScrollPx : 0;
-      let effectiveOverlap: number;
-      let rawProgress = 0;
-      if (rawOverlap <= 0) {
-        effectiveOverlap = 0;
-      } else if (rawOverlap <= POST_LOCK_BUFFER) {
-        /* Pinned buffer — globe stays put for 50 px after the
-         * cards appear so the user sees them settle. */
-        effectiveOverlap = 0;
-      } else if (rawOverlap <= frozenWindow) {
-        /* Scatter window — globe stays pinned, dissolveProgress
-         * ramps 0 → 1 over this 1 vh of scroll. */
-        effectiveOverlap = 0;
-        rawProgress = (rawOverlap - POST_LOCK_BUFFER) / dissolveSpan;
-      } else {
-        /* Resume — canvas slides off the top as additional
-         * scroll accumulates. */
-        effectiveOverlap = rawOverlap - frozenWindow;
-        rawProgress = 1;
-      }
-
-      globe.style.position = 'fixed';
-      globe.style.top = '0px';
-      globe.style.transform =
-        effectiveOverlap > 0 ? `translateY(${-effectiveOverlap}px)` : '';
-      setIsLocked(nowLocked);
-      const clampedDissolve = clamp01(rawProgress);
-      setDissolveProgress(clampedDissolve);
-      setPreLockProgress(clamp01(sy / lockScrollPx));
-
-      /* Statement heading state machine.
-       *   trigger      = dissolveProgress crosses 0.9 (90 % diffused)
-       *   pin window   = 500 px of scroll AFTER trigger
-       *   leaving      = scroll past that window
-       * The heading is position:fixed so it sits over the still-
-       * diffusing globe at 90 %, stays pinned for 500 px, then
-       * fades out as the user keeps scrolling. */
-      if (statementTriggerSyRef.current === null) {
-        /* Only fire the trigger while we're STILL in the
-         * scatter window (effectiveOverlap === 0 means the
-         * canvas is still pinned). Past that window we've
-         * fully exited the hero and the 67.3 % heading must
-         * never reappear — without this guard, jumping to a
-         * mid-page scroll position (FAQ / CityScape) with
-         * clampedDissolve already saturated at 1.0 would
-         * re-trigger the heading at that random scroll. */
-        if (
-          clampedDissolve >= 0.9 &&
-          hasUserScrolledRef.current &&
-          effectiveOverlap === 0
-        ) {
-          statementTriggerSyRef.current = sy;
-          setStatementPhase('visible');
-        } else if (effectiveOverlap > 0) {
-          /* Past the hero entirely — force 'leaving' so the
-           * element is removed from the visual stack and can't
-           * paint over the FAQ / CityScape below. */
-          setStatementPhase('leaving');
-        }
-        setBunnPhase('hidden');
-        setUnpinOffsetPx(0);
-      } else {
-        const distance = sy - statementTriggerSyRef.current;
-        /* BUNN line appears 400 px after the 67.3 % heading
-         * was triggered. The same boolean drives the 67.3 %
-         * heading's "shifted" state (scale down + lift up). */
-        setBunnPhase(distance >= 400 ? 'visible' : 'hidden');
-        /* Unpin window — 100 px AFTER the BUNN appears (= 500
-         * from the 67.3 % trigger), the whole block stops being
-         * pinned at viewport-centre and tracks scroll 1:1. The
-         * offset gets applied as an additional upward translate
-         * via the --unpin CSS custom property, so both headings
-         * scroll off the top together. */
-        const UNPIN_THRESHOLD = 500;
-        setUnpinOffsetPx(
-          distance > UNPIN_THRESHOLD ? distance - UNPIN_THRESHOLD : 0,
-        );
-        if (distance < 0) {
-          /* User scrolled back ABOVE the trigger — return the
-           * heading to visible (it's still relevant on screen).
-           * If they scroll far enough back that dissolve drops
-           * below 0.9, reset entirely. */
-          if (clampedDissolve < 0.9) {
-            statementTriggerSyRef.current = null;
-            setStatementPhase('hidden');
-            setBunnPhase('hidden');
-          } else {
-            setStatementPhase('visible');
-          }
-        } else if (distance > UNPIN_THRESHOLD + window.innerHeight) {
-          /* Heading has scrolled well past the viewport top —
-           * transition to 'leaving' so visibility:hidden kicks
-           * in and the element can't flash on resize/reload. */
-          setStatementPhase('leaving');
-        } else {
-          setStatementPhase('visible');
-        }
-      }
-    };
-
-    recalc();
-    const ro = new ResizeObserver(recalc);
-    ro.observe(headingContainer);
-    ro.observe(card);
-    const onScroll = () => {
-      hasUserScrolledRef.current = true;
-      recalc();
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', recalc);
-    if (document.fonts?.ready) {
-      document.fonts.ready.then(recalc);
-    }
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', recalc);
-    };
-  }, [
-    gapAfterHeading,
-    globeInitialPct,
-    globeFinalPct,
-    lockTopPx,
-    sphereInsetPx,
-  ]);
 
   /* Position the glass card so that on first load its BOTTOM
    * sits exactly cardBottomPadding pixels above the viewport
@@ -1108,220 +1312,9 @@ function App() {
             delay={260}
             stepDuration={0.45}
           />
-          <p
-            className={`rotator${isCentered ? ' rotator--centered' : ''}`}
-            style={
-              {
-                '--chip-y-offset': `${chipYOffset}px`,
-              } as React.CSSProperties
-            }
-          >
-            {/* LayoutGroup synchronizes motion-layout animations
-                across the chip and the suffix so when the chip's
-                width changes on every city swap, the surrounding
-                suffix ("TO PAY") slides horizontally to its new
-                position with the SAME timing instead of just
-                re-flowing instantly. */}
-            <LayoutGroup>
-              {/* Prefix carries `layout` too, so its position
-                  animates whenever the chip width changes. The
-                  transition is INSTANT (duration 0) on regular
-                  city swaps so the prefix just snaps, then turns
-                  into backOut when the new OR previous slide is
-                  "52+ countries" — that's the only case where
-                  the user wants the prefix to bounce-back as the
-                  chip expands LEFT into its space. */}
-              <motion.span
-                layout
-                className="rotator-prefix"
-                transition={
-                  transitionInvolves52
-                    ? LAYOUT_BACKOUT_TRANSITION
-                    : LAYOUT_INSTANT_TRANSITION
-                }
-              >
-                {['ENABLE', 'YOUR', 'CLIENT'].map((word, i) => (
-                  <Fragment key={word}>
-                    <motion.span
-                      initial={BLUR_INITIAL}
-                      animate={BLUR_ANIMATE}
-                      transition={blurTransition(
-                        ROTATOR_START + i * ROTATOR_WORD_DELAY,
-                      )}
-                      style={{ display: 'inline-block' }}
-                    >
-                      {word}
-                    </motion.span>
-                    {' '}
-                  </Fragment>
-                ))}
-              </motion.span>
-              {/* Chip is a PERMANENT motion.span — never unmounts.
-                  Its width animates via Framer's `layout` prop when
-                  the inner content (photo + city) swaps to a new
-                  size. Inside, an AnimatePresence with `popLayout`
-                  lets the content slide / blur in & out;
-                  overflow: hidden on the chip masks the slide so
-                  the swap stays inside the gray frame. */}
-              {' '}
-              {/* "IN" + chip + "TO PAY" grouped in rotator-tail
-                  (white-space: nowrap): one line on desktop, but on
-                  mobile the group wraps as a unit so the last row
-                  always reads "IN <city> TO PAY". "IN" keeps its own
-                  layout bounce so it tracks the prefix on 52-swaps. */}
-              <span className="rotator-tail">
-                <motion.span
-                  layout
-                  className="rotator-prefix rotator-in"
-                  transition={
-                    transitionInvolves52
-                      ? LAYOUT_BACKOUT_TRANSITION
-                      : LAYOUT_INSTANT_TRANSITION
-                  }
-                >
-                  <motion.span
-                    initial={BLUR_INITIAL}
-                    animate={BLUR_ANIMATE}
-                    transition={blurTransition(
-                      ROTATOR_START + 3 * ROTATOR_WORD_DELAY,
-                    )}
-                    style={{ display: 'inline-block' }}
-                  >
-                    FROM
-                  </motion.span>
-                </motion.span>
-                {' '}
-              <motion.span
-                layout
-                className="rotator-name-chip"
-                initial={BLUR_INITIAL}
-                animate={BLUR_ANIMATE}
-                transition={{
-                  ...LAYOUT_BACKOUT_TRANSITION,
-                  ...blurTransition(
-                    ROTATOR_START + 4 * ROTATOR_WORD_DELAY,
-                  ),
-                }}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.span
-                    key={countryIdx}
-                    className="rotator-content"
-                    layout
-                    aria-hidden="true"
-                  >
-                    {/* Per-character RotatingText animation
-                        (reactbits pattern): every glyph is its
-                        own motion.span that slides y: 100% → 0
-                        → -120% with a spring + a stagger delay
-                        keyed off the LAST character (the
-                        rightmost glyph enters first, leftmost
-                        last). The chip's overflow: hidden masks
-                        the slide. */}
-                    <span className="rotator-name">
-                      {(() => {
-                        const cityName =
-                          COUNTRIES[countryIdx].name.toUpperCase();
-                        const chars = Array.from(cityName);
-                        return chars.map((char, i) => (
-                          <motion.span
-                            key={i}
-                            className="rotator-name-char"
-                            initial={{ y: '100%' }}
-                            animate={{ y: 0 }}
-                            exit={{ y: '-120%' }}
-                            transition={{
-                              ...ROTATOR_SPRING,
-                              delay: (chars.length - 1 - i) * ROTATOR_STAGGER,
-                            }}
-                          >
-                            {char === ' ' ? ' ' : char}
-                          </motion.span>
-                        ));
-                      })()}
-                    </span>
-                    {COUNTRIES[countryIdx].photo && (
-                      <motion.span
-                        className="rotator-photo-frame"
-                        aria-hidden="true"
-                        /* Photo enters in sync with the
-                           leftmost character (= the last glyph
-                           to roll in under staggerFrom='last'),
-                           reading as one cohesive unit. */
-                        initial={{ y: '100%', opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: '-120%', opacity: 0 }}
-                        transition={{
-                          ...ROTATOR_SPRING,
-                          delay:
-                            COUNTRIES[countryIdx].name.length *
-                            ROTATOR_STAGGER,
-                        }}
-                      >
-                        <img
-                          className="rotator-photo"
-                          src={COUNTRIES[countryIdx].photo as string}
-                          alt=""
-                        />
-                      </motion.span>
-                    )}
-                  </motion.span>
-                </AnimatePresence>
-              </motion.span>
-              {/* "TO PAY" — a motion.span with `layout` so
-                  Framer's LayoutGroup snapshots its position
-                  before & after each city swap and tweens it
-                  to the new spot. With `backOut` ease, the
-                  motion OVERSHOOTS the target then bounces
-                  back: chip wider → suffix moves right then
-                  bounces back left; chip narrower → suffix
-                  moves left then bounces back right. */}
-              <motion.span
-                layout
-                className="rotator-suffix"
-                transition={LAYOUT_BACKOUT_TRANSITION}
-              >
-                {' '}
-                {['TO', 'PAY'].map((word, i) => (
-                  <Fragment key={word}>
-                    <motion.span
-                      initial={BLUR_INITIAL}
-                      animate={BLUR_ANIMATE}
-                      transition={blurTransition(
-                        ROTATOR_START + (5 + i) * ROTATOR_WORD_DELAY,
-                      )}
-                      style={{ display: 'inline-block' }}
-                    >
-                      {word}
-                    </motion.span>
-                    {i < 1 && ' '}
-                  </Fragment>
-                ))}
-              </motion.span>
-              </span>
-            </LayoutGroup>
-          </p>
+          <HeroRotator />
         </div>
 
-        <div
-          className={`hero-globe${isLocked ? ' hero-globe--locked' : ''}`}
-          aria-hidden="true"
-          ref={globeWrapperRef}
-        >
-          {globeReady && (
-            <Suspense fallback={null}>
-              <Globe
-                sphereYOffset={sphereYOffset}
-                sphereScale={sphereScale}
-                cardsVisible={isLocked}
-                cardSizePct={cardSizePct}
-                dissolveProgress={dissolveProgress}
-                preLockProgress={preLockProgress}
-                dotSize={dotSize}
-              />
-            </Suspense>
-          )}
-        </div>
 
         <div className="hero-card" ref={cardRef}>
           {/* Glass surface carries both the clip-path (s-curve
@@ -1450,81 +1443,17 @@ function App() {
             </GlareHover>
           </BorderGlow>
         </div>
-      </section>
 
-      {/* Statement section — separate from the hero. The heading
-          uses BlurText (same component the hero h1 uses) so the
-          per-word blur-fade-in matches the hero's entrance. Sticky
-          inside the section pins the heading to viewport-centre
-          for ≈500 px of scroll, then releases. */}
-      <h2
-        className={`statement-heading statement-heading--${statementPhase}${
-          bunnPhase === 'visible' ? ' statement-heading--shifted' : ''
-        }${unpinOffsetPx > 0 ? ' statement-heading--unpinned' : ''}`}
-        aria-hidden={statementPhase === 'hidden'}
-        style={{
-          '--unpin': `${unpinOffsetPx}px`,
-          ...(statementPhase !== 'visible' && statementPhase !== 'leaving'
-            ? { top: '-200vh' }
-            : {}),
-        } as React.CSSProperties}
-      >
-        67.3% of cross-border property buyers worry more about{' '}
-        <span className="statement-chip-target">
-          how to pay
-          <svg className="statement-chip-svg" aria-hidden="true">
-            <rect
-              className="statement-chip-rect"
-              rx="15"
-              ry="15"
-              pathLength="1"
-            />
-          </svg>
-        </span>{' '}
-        than about anything else
-      </h2>
-
-      <div
-        className={`bunn-heading bunn-heading--${bunnPhase}${
-          unpinOffsetPx > 0 ? ' bunn-heading--unpinned' : ''
-        }`}
-        aria-hidden={bunnPhase === 'hidden'}
-        style={{
-          '--unpin': `${unpinOffsetPx}px`,
-          ...(bunnPhase === 'hidden'
-            ? { top: '-200vh' }
-            : {}),
-        } as React.CSSProperties}
-      >
-        <StaggerText
-          text="BUNN unsticks the wire."
-          play={bunnPhase === 'visible'}
-          stagger={0.04}
-          direction="bottom"
-          transition={{
-            ease: [0.25, 0.1, 0.25, 1],
-            duration: 0.5,
-          }}
-          style={{ display: 'inline-block' }}
+        {/* MUST render after .hero-card: HeroScrollScene's layout
+            effect reads cardRef on mount, and refs to LATER JSX
+            siblings aren't attached yet when an earlier child's
+            effects run. All its elements are position:fixed with
+            explicit z-indexes, so DOM order doesn't affect paint. */}
+        <HeroScrollScene
+          headingContainerRef={headingContainerRef}
+          cardRef={cardRef}
         />
-        {' '}
-        <motion.span
-          className="bunn-heading__easy"
-          initial={{ x: -60, opacity: 0 }}
-          animate={
-            bunnPhase === 'visible'
-              ? { x: 0, opacity: 1 }
-              : { x: -60, opacity: 0 }
-          }
-          transition={{
-            x: { ease: 'backOut', duration: 0.55, delay: 0.96 },
-            opacity: { duration: 0.3, delay: 0.96 },
-          }}
-          style={{ display: 'inline-block' }}
-        >
-          Easy
-        </motion.span>
-      </div>
+      </section>
 
       {/* How-it-works section — five portrait-aspect cards that
           stack as the user scrolls, using the React Bits

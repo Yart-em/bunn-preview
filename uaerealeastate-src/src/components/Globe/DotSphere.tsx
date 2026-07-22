@@ -57,6 +57,15 @@ function AnimatedPoints({
   const geomRef = useRef<THREE.BufferGeometry>(null);
   const matRef = useRef<THREE.PointsMaterial>(null);
   const positions = useMemo(() => new Float32Array(start), [start]);
+  /* Hoisted out of the per-frame dissolve loop — it's a constant
+   * for a given delay array. */
+  const maxDelay = useMemo(() => {
+    let max = 0;
+    for (let i = 0; i < delay.length; i++) {
+      if (delay[i] > max) max = delay[i];
+    }
+    return max;
+  }, [delay]);
   const startTimeRef = useRef<number | null>(null);
   const doneRef = useRef(false);
 
@@ -127,14 +136,6 @@ function AnimatedPoints({
 
   useFrame((state) => {
     if (matRef.current) {
-      // Convert world-space camera position into the sphere's local
-      // frame so the math holds even when the parent group moves /
-      // scales / rotates.
-      const local = state.camera.position.clone();
-      const parent = matRef.current.userData?.parentObject;
-      if (parent) {
-        local.applyMatrix4(parent.matrixWorld.clone().invert());
-      }
       uniforms.uCamPos.value.copy(state.camera.position);
     }
 
@@ -152,10 +153,6 @@ function AnimatedPoints({
      * in time. Scroll-controlled, no extra effects. */
     if (dissolveProgress > 0) {
       const count = delay.length;
-      let maxDelay = 0;
-      for (let i = 0; i < count; i++) {
-        if (delay[i] > maxDelay) maxDelay = delay[i];
-      }
       const gatherEnd = maxDelay + GATHER_DURATION;
       const tReverse = (1 - dissolveProgress) * gatherEnd;
       for (let i = 0; i < count; i++) {

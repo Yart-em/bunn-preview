@@ -148,6 +148,7 @@ export default function Globe({
   dissolveProgress = 0,
   preLockProgress = 0,
   dotSize = 0.011,
+  frameloop = 'always',
 }: {
   sphereYOffset?: number;
   sphereScale?: number;
@@ -169,6 +170,10 @@ export default function Globe({
    *  globe's on-screen size (viewport aspect) — keeps the dot-to-globe
    *  ratio consistent between mobile and desktop. */
   dotSize?: number;
+  /** R3F render loop mode. The landing passes 'never' once the hero
+   *  canvas has scrolled fully off-screen so the GPU stops
+   *  re-rendering an invisible scene. */
+  frameloop?: 'always' | 'demand' | 'never';
 }) {
   useEffect(() => {
     const tick = () => window.dispatchEvent(new Event('resize'));
@@ -183,8 +188,19 @@ export default function Globe({
   return (
     <Canvas
       camera={{ position: [0, 0.32, 3.1], fov: 45 }}
-      dpr={[1, 2]}
-      gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
+      /* 1.75 instead of 2: the canvas is 100 vw × 200 vh, so full
+       * retina resolution costs ~30 % more GPU raster work for a
+       * difference that isn't visible on a dot cloud. */
+      dpr={[1, 1.75]}
+      frameloop={frameloop}
+      /* preserveDrawingBuffer forces the browser to COPY (not swap)
+       * the full canvas every frame — nothing here reads the buffer
+       * back, so keep the cheap swap path. */
+      gl={{
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance',
+      }}
       style={{ width: '100%', height: '100%', background: 'transparent' }}
     >
       <Scene

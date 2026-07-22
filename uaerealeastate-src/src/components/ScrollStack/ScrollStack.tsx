@@ -107,6 +107,7 @@ const ScrollStack = ({
   const animationFrameRef = useRef<number | null>(null);
   const lenisRef = useRef<Lenis | null>(null);
   const cardsRef = useRef<HTMLElement[]>([]);
+  const endElementRef = useRef<HTMLElement | null>(null);
   const lastTransformsRef = useRef<Map<number, CardTransform>>(new Map());
   const isUpdatingRef = useRef(false);
 
@@ -179,11 +180,9 @@ const ScrollStack = ({
       containerHeight,
     );
 
-    const endElement = useWindowScroll
-      ? (document.querySelector('.scroll-stack-end') as HTMLElement | null)
-      : (scrollerRef.current?.querySelector(
-          '.scroll-stack-end',
-        ) as HTMLElement | null);
+    /* Cached at setup — querySelector on every scroll event was
+     * wasted work. */
+    const endElement = endElementRef.current;
 
     const endElementTop = endElement ? getElementOffset(endElement) : 0;
 
@@ -444,6 +443,9 @@ const ScrollStack = ({
     );
 
     cardsRef.current = cards;
+    endElementRef.current = useWindowScroll
+      ? (document.querySelector('.scroll-stack-end') as HTMLElement | null)
+      : (scroller.querySelector('.scroll-stack-end') as HTMLElement | null);
     const transformsCache = lastTransformsRef.current;
 
     cards.forEach((card, i) => {

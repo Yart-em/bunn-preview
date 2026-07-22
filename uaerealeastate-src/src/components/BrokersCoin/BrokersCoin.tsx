@@ -166,8 +166,28 @@ function SpinningCoin({ hovered }: { hovered: boolean }) {
 /* ── Wrapper with R3F Canvas ──────────────────────────────── */
 export default function BrokersCoin({ className = '' }: { className?: string }) {
   const [hovered, setHovered] = useState(false);
+  /* Only run the render loop while the coin is on screen — this
+   * canvas otherwise spins at 60 fps for the page's whole life,
+   * competing with the hero globe for GPU time. */
+  const [visible, setVisible] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { rootMargin: '100px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
     <div
+      ref={wrapRef}
       className={`brokers-coin ${className}`}
       aria-hidden="true"
       onMouseEnter={() => setHovered(true)}
@@ -177,7 +197,8 @@ export default function BrokersCoin({ className = '' }: { className?: string }) 
         gl={{ alpha: true, antialias: true }}
         camera={{ position: [0, 0, 2.2], fov: 40 }}
         style={{ width: '100%', height: '100%', background: 'transparent' }}
-        dpr={[1, 2]}
+        dpr={[1, 1.75]}
+        frameloop={visible ? 'always' : 'never'}
       >
         <SpinningCoin hovered={hovered} />
       </Canvas>
