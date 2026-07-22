@@ -1028,7 +1028,13 @@ function App() {
       if (!armed || snapping || lastDir === 0) return;
       armed = false; // consume this gesture — never chain to the next anchor
       const cur = lenis.scroll;
-      const threshold = window.innerHeight * 0.4;
+      /* Reach = one full viewport: any block edge within a screen in
+       * the travel direction captures the settle, so consecutive
+       * blocks click into place one by one instead of flying past.
+       * Long interiors (hero choreography, the card stack, mid-FAQ)
+       * sit farther than a viewport from the next edge and keep
+       * their free, continuous scroll. */
+      const threshold = window.innerHeight;
       const targets = getTargets();
       let target: number | null = null;
       if (lastDir > 0) {
