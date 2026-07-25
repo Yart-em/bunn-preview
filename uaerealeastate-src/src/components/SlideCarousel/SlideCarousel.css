@@ -40,8 +40,20 @@
               filter 0.7s ease,
               opacity 0.7s ease;
   transform-style: preserve-3d;
-  will-change: transform, filter, opacity;
   pointer-events: none;
+}
+
+/* Promote the animating layers ONLY while the deck is actually
+   running (on screen + tab visible — see SlideCarousel.tsx). Held
+   permanently, `will-change` kept ten composited layers alive for
+   the page's whole life — five of them carrying a 10 px blur — so
+   the deck was still costing GPU memory and raster budget while it
+   sat far off screen, stealing frames from the hero globe. */
+.sc-wrap--running .sc-slide {
+  will-change: transform, filter, opacity;
+}
+.sc-wrap--running .sc-btn-wrap {
+  will-change: transform, opacity;
 }
 
 .sc-slide--active {
@@ -205,7 +217,6 @@
 .sc-btn-wrap {
   opacity: 0;
   pointer-events: auto;
-  will-change: transform, opacity;
 }
 
 /* ── BorderGlow wrapper — proportional to card so 5 px

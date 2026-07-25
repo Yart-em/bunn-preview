@@ -182,6 +182,10 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
   /* Track the GSAP timeline per-slide so we can kill it on
    * cleanup / re-trigger without leaking. */
   const tlRefs = useRef<(gsap.core.Timeline | null)[]>([]);
+  /* Which slide was active last, so a swap can collapse ONLY the
+   * outgoing card. `null` means "nothing has played yet" — the next
+   * run does a silent full sync of every card instead. */
+  const prevIdxRef = useRef<number | null>(null);
 
   /* Slide background images (~1.4 MB of JPEGs) load only once the deck
    * nears the viewport (within 600px), keeping them off the initial
@@ -208,13 +212,53 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
     return () => window.removeEventListener('scroll', check);
   }, [imagesInView]);
 
+  /* ── Run gate ─────────────────────────────────────────────────
+   * The deck only animates while it's actually on screen AND the
+   * document is visible. Two reasons, both of them bugs otherwise:
+   *   • It used to cycle from page load, forever, thousands of
+   *     pixels off screen — 5 GSAP timelines every 3 s competing
+   *     with the hero globe for the same frames.
+   *   • setInterval keeps firing when rAF is suspended (hidden tab,
+   *     background pane), so activeIdx advanced while GSAP and the
+   *     CSS transitions were frozen. Coming back, the deck was
+   *     several slides out of sync and visibly snapped to catch up.
+   * Gating the interval on both signals means the timer can never
+   * outrun the animations, and each resume starts a clean cycle. */
+  const [inView, setInView] = useState(false);
+  const [docVisible, setDocVisible] = useState(
+    typeof document === 'undefined' || document.visibilityState === 'visible',
+  );
+  const running = inView && docVisible;
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { rootMargin: '100px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onVis = () =>
+      setDocVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
   /* ── Auto-rotate timer ──────────────────────────────────── */
   useEffect(() => {
+    if (!running) return;
     const id = setInterval(() => {
       setActiveIdx((prev) => (prev + 1) % total);
     }, ROTATE_MS);
     return () => clearInterval(id);
-  }, [total]);
+  }, [running, total]);
 
   /* ── Animate on activeIdx change ────────────────────────── */
   const animateSlide = useCallback(
@@ -298,13 +342,47 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
     tlRefs.current[idx] = tl;
   }, []);
 
+  /* Put a slide in its resting state INSTANTLY — no tween.
+   * Used to sync the cards that aren't part of the current swap.
+   * They're already flat with a hidden button, so tweening them
+   * (as this used to, for all four every 3 s) only rewrote an
+   * identical 56-number path 30x per card into a blurred,
+   * GPU-promoted layer — forcing it to re-rasterize for no visible
+   * change. That redundant raster burst landed on exactly the frame
+   * the deck was rotating, which is what made the swap stutter. */
+  const settleSlide = useCallback((idx: number) => {
+    tlRefs.current[idx]?.kill();
+    tlRefs.current[idx] = null;
+    const path = pathRefs.current[idx];
+    const btn = btnRefs.current[idx];
+    if (path) gsap.set(path, { attr: { d: getPaths().rect } });
+    if (btn) gsap.set(btn, { y: 40, opacity: 0, scale: 0.92 });
+  }, []);
+
   useEffect(() => {
-    /* Reset every slide, then animate the new active one. */
-    slides.forEach((_, i) => {
-      if (i !== activeIdx) resetSlide(i);
-    });
+    if (!running) return;
+    const prev = prevIdxRef.current;
+    if (prev === null) {
+      /* First play (or first frame after a resume): silently sync
+       * every other card, then play the active one's entrance. */
+      slides.forEach((_, i) => {
+        if (i !== activeIdx) settleSlide(i);
+      });
+    } else if (prev !== activeIdx) {
+      /* Normal swap — only the outgoing card animates out. */
+      resetSlide(prev);
+    }
     animateSlide(activeIdx);
-  }, [activeIdx, slides.length, animateSlide, resetSlide]);
+    prevIdxRef.current = activeIdx;
+  }, [running, activeIdx, slides, animateSlide, resetSlide, settleSlide]);
+
+  /* Paused (scrolled away / tab hidden): drop the "nothing has
+   * played yet" marker so the next resume re-syncs from scratch
+   * instead of animating out a card that's no longer showing. */
+  useEffect(() => {
+    if (running) return;
+    prevIdxRef.current = null;
+  }, [running]);
 
   /* Keep the notch matched to the viewport's button width: when the
    * mobile/desktop breakpoint is crossed, re-apply the correct path
@@ -313,33 +391,21 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
     const onResize = () => {
       const P = getPaths();
       slides.forEach((_, i) => {
+        tlRefs.current[i]?.kill();
+        tlRefs.current[i] = null;
         const path = pathRefs.current[i];
         if (path) {
           gsap.set(path, { attr: { d: i === activeIdx ? P.notch : P.rect } });
+        }
+        const btn = btnRefs.current[i];
+        if (btn && i !== activeIdx) {
+          gsap.set(btn, { y: 40, opacity: 0, scale: 0.92 });
         }
       });
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [activeIdx, slides.length]);
-
-  /* ── Re-sync on tab visibility ────────────────────────────
-   * Chrome suspends requestAnimationFrame in background tabs,
-   * so GSAP timelines freeze while setInterval (auto-rotate)
-   * still fires. When the user returns, re-trigger the active
-   * slide animation so the notch + button state is correct. */
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        slides.forEach((_, i) => {
-          if (i !== activeIdx) resetSlide(i);
-        });
-        animateSlide(activeIdx);
-      }
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [activeIdx, slides, animateSlide, resetSlide]);
+  }, [activeIdx, slides]);
 
   /* Cleanup all timelines on unmount. */
   useEffect(() => {
@@ -383,7 +449,10 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
   };
 
   return (
-    <div className="sc-wrap" ref={wrapRef}>
+    <div
+      className={`sc-wrap${running ? ' sc-wrap--running' : ''}`}
+      ref={wrapRef}
+    >
       <div className="sc-stage">
         {slides.map((slide, i) => {
           const isActive = i === activeIdx;
