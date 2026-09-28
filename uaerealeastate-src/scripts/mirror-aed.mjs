@@ -47,3 +47,11 @@ function walk(dir) {
 }
 walk(DST);
 console.log(`[mirror-aed] mirrored → /aedrealestate (re-based ${touched} files)`);
+
+// bunn.world's index IS the AED page, so serve the same shell at the
+// site root too. Its asset URLs are absolute (/aedrealestate/…), so this
+// one file is all the root needs — and regenerating it on every build
+// means the homepage can never drift from /aedrealestate.
+const ROOT_INDEX = join(here, '..', '..', 'index.html');
+cpSync(join(DST, 'index.html'), ROOT_INDEX);
+console.log('[mirror-aed] root index.html → the /aedrealestate page');

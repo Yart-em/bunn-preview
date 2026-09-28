@@ -1,0 +1,1068 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy — BUNN</title>
+    <meta
+      name="description"
+      content="How BUNN Labs, Inc. collects, uses and shares personal information, the regulated partners we pass identity and transaction data to, and your rights under the UAE PDPL, the DIFC Data Protection Law and the GDPR."
+    />
+    <link rel="icon" href="/favicon.png" />
+    <!-- Everything this page needs is self-hosted or inline: a privacy
+         policy should not send its readers' IP addresses to third-party
+         font or script hosts. -->
+    <style>
+      @font-face {
+        font-family: 'Engravers Gothic';
+        src: url('/fonts/EngraversGothicBT-Bold.woff2') format('woff2');
+        font-weight: 700;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Engravers Gothic';
+        src: url('/fonts/EngraversGothicBT-Regular.woff2') format('woff2');
+        font-weight: 400;
+        font-display: swap;
+      }
+
+      :root {
+        --ink: #0e0e10;
+        --text: #2c2c32;
+        --faint: #6b6b73;
+        --line: #ececef;
+        --wash: #f7f7f8;
+        --pink: #ff9bb4;
+        --pink-wash: #fff3f6;
+        --bg: #ffffff;
+        --display: 'Engravers Gothic', 'Helvetica Neue', Arial, sans-serif;
+        --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 400 16px/1.65 var(--sans);
+        -webkit-font-smoothing: antialiased;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      .skip {
+        position: absolute;
+        left: 16px;
+        top: -48px;
+        padding: 8px 14px;
+        background: var(--ink);
+        color: #fff;
+        border-radius: 8px;
+        z-index: 10;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+
+      a {
+        color: var(--ink);
+        text-decoration: underline;
+        text-decoration-color: var(--pink);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 3px;
+      }
+      a:hover {
+        text-decoration-color: var(--ink);
+      }
+      a:focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 3px;
+        border-radius: 3px;
+      }
+
+      /* ── Top bar ─────────────────────────────────────────── */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 22px 24px;
+      }
+      .brand {
+        display: inline-flex;
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .brand svg {
+        display: block;
+        height: 16px;
+        width: auto;
+      }
+      .topbar__back {
+        font-size: 14px;
+        color: var(--faint);
+        text-decoration: none;
+      }
+      .topbar__back:hover {
+        color: var(--ink);
+      }
+
+      /* ── Title block ─────────────────────────────────────── */
+      .hero {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 56px 24px 48px;
+        border-top: 1px solid var(--line);
+      }
+      .eyebrow {
+        margin: 0;
+        font: 700 12px/1 var(--display);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      h1 {
+        margin: 16px 0 18px;
+        font: 700 clamp(36px, 7vw, 68px) / 1 var(--display);
+        letter-spacing: -0.01em;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+      .meta {
+        margin: 0;
+        font-size: 15px;
+        color: var(--faint);
+      }
+      .rule {
+        width: 56px;
+        height: 3px;
+        margin-top: 28px;
+        background: var(--pink);
+        border-radius: 2px;
+      }
+
+      /* ── Contents + article ──────────────────────────────── */
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 32px;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 24px 96px;
+      }
+      @media (min-width: 1000px) {
+        .layout {
+          grid-template-columns: 220px minmax(0, 720px);
+          gap: 80px;
+        }
+      }
+
+      .toc {
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      .toc__label {
+        margin: 0 0 10px;
+        font: 700 11px/1 var(--display);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      .toc ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: toc;
+      }
+      .toc li {
+        counter-increment: toc;
+        break-inside: avoid;
+      }
+      .toc a {
+        display: flex;
+        gap: 10px;
+        padding: 5px 0;
+        color: var(--faint);
+        text-decoration: none;
+      }
+      .toc a::before {
+        content: counter(toc, decimal-leading-zero);
+        flex: 0 0 auto;
+        font-variant-numeric: tabular-nums;
+        color: #b4b4bb;
+      }
+      .toc a:hover {
+        color: var(--ink);
+      }
+      @media (max-width: 999px) {
+        .toc {
+          padding: 18px 20px;
+          border: 1px solid var(--line);
+          border-radius: 16px;
+        }
+        .toc ol {
+          columns: 2;
+          column-gap: 24px;
+        }
+      }
+      @media (max-width: 420px) {
+        .toc ol {
+          columns: 1;
+        }
+      }
+      @media (min-width: 1000px) {
+        .toc {
+          position: sticky;
+          top: 28px;
+          align-self: start;
+          max-height: calc(100vh - 56px);
+          overflow-y: auto;
+        }
+      }
+
+      article {
+        min-width: 0;
+      }
+      article > :first-child {
+        margin-top: 0;
+      }
+      article p,
+      article li {
+        margin: 12px 0;
+      }
+      .lead {
+        font-size: 18px;
+        line-height: 1.6;
+        color: var(--ink);
+      }
+      h2 {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin: 64px 0 16px;
+        font: 700 21px/1.25 var(--display);
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--ink);
+        scroll-margin-top: 24px;
+      }
+      h2 .num {
+        flex: 0 0 auto;
+        font-size: 14px;
+        color: var(--faint);
+        font-variant-numeric: tabular-nums;
+      }
+      h3 {
+        margin: 32px 0 8px;
+        font: 600 17px/1.35 var(--sans);
+        color: var(--ink);
+        scroll-margin-top: 24px;
+      }
+      strong {
+        font-weight: 600;
+        color: var(--ink);
+      }
+      ul {
+        padding-left: 20px;
+      }
+      li::marker {
+        color: var(--pink);
+      }
+
+      /* Two-roles summary */
+      .roles {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+        margin: 28px 0 8px;
+      }
+      @media (min-width: 640px) {
+        .roles {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .role {
+        padding: 22px 22px 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+      }
+      .role--partner {
+        background: var(--wash);
+        border-color: transparent;
+      }
+      .role h3 {
+        margin: 0 0 10px;
+        font: 700 13px/1.2 var(--display);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .role p {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      .role .ask {
+        margin-top: 12px;
+        font-size: 14px;
+        color: var(--faint);
+      }
+
+      .address {
+        margin: 18px 0;
+        padding: 4px 0 4px 18px;
+        border-left: 3px solid var(--pink);
+        font-style: normal;
+        line-height: 1.65;
+        color: var(--ink);
+      }
+
+      blockquote.consent {
+        margin: 20px 0;
+        padding: 20px 24px;
+        background: var(--pink-wash);
+        border-left: 3px solid var(--pink);
+        border-radius: 0 14px 14px 0;
+        font-size: 17px;
+        line-height: 1.55;
+        font-weight: 500;
+        color: var(--ink);
+      }
+      blockquote.consent p {
+        margin: 0;
+      }
+
+      /* Tables — stack into labelled cards on phones */
+      table {
+        width: 100%;
+        margin: 20px 0 8px;
+        border-collapse: collapse;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      th {
+        padding: 0 16px 12px 0;
+        border-bottom: 2px solid var(--ink);
+        text-align: left;
+        vertical-align: bottom;
+        font: 700 11px/1.3 var(--display);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      td {
+        padding: 16px 16px 16px 0;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th:last-child,
+      td:last-child {
+        padding-right: 0;
+      }
+      .partner {
+        display: block;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .partner-meta {
+        display: block;
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--faint);
+      }
+      @media (max-width: 719px) {
+        table,
+        tbody,
+        tr,
+        td {
+          display: block;
+        }
+        thead {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
+        }
+        tr {
+          margin: 0 0 12px;
+          padding: 4px 18px;
+          border: 1px solid var(--line);
+          border-radius: 16px;
+        }
+        td {
+          padding: 12px 0;
+        }
+        td:last-child {
+          border-bottom: 0;
+        }
+        td::before {
+          content: attr(data-label);
+          display: block;
+          margin-bottom: 4px;
+          font: 700 10px/1.3 var(--display);
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--faint);
+        }
+      }
+
+      .note {
+        font-size: 14px;
+        color: var(--faint);
+      }
+
+      /* ── Footer — matches the site footer ───────────────── */
+      .site-footer {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 22px 24px 28px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        color: var(--ink);
+      }
+      .site-footer .brand svg {
+        height: 15px;
+      }
+      .site-footer__meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        text-align: right;
+      }
+      .site-footer__meta p {
+        margin: 0;
+      }
+      @media (max-width: 560px) {
+        .site-footer {
+          flex-direction: column;
+          gap: 14px;
+        }
+        .site-footer__meta {
+          align-items: flex-start;
+          text-align: left;
+        }
+      }
+
+      @media print {
+        .topbar,
+        .toc,
+        .skip {
+          display: none;
+        }
+        .layout {
+          display: block;
+          padding-bottom: 0;
+        }
+        a {
+          text-decoration: none;
+        }
+        blockquote.consent,
+        .role--partner {
+          background: none;
+        }
+        h2 {
+          break-after: avoid;
+        }
+        tr {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+      <symbol id="bunn-logo" viewBox="0 0 1464.54 240.85">
+        <path d="M1045.66,209.42c-5.31,15.59-20.95,26.29-37.01,28.07-34.26,3.59-66.99-13.96-85.66-42.66-13.65-19.98-26.36-43.16-39.26-63.18-16.22-23.7-20.91-10.89-14.34,9.84,8.36,27.49,21.31,69.4-8.66,87.7-20.09,10.93-51.75,9.51-67.92-8.3-7.5-8.42-9.54-20.79-9.66-31.82-.52-13.97.22-30.72.21-43.09-.15-36.43-.27-68.71,4.26-107.76,5.23-34.72,51.05-38.56,78.82-31.16,32.16,8.27,45.36,36.93,59.19,64.77,5.52,11.22,22.44,46.46,32.11,47.27,9.89-1.08,6.4-25.45,4.67-35.54-1.72-7.88-4.72-16.97-6.91-25.23-2.96-8.96-4.13-19.87-.93-28.3,5.31-16.9,26.68-26.51,43.76-23.16,8.85,1.61,16.65,6.02,23.81,11.2,36.88,25.74,28.14,104.33,27.65,146.87-.64,14.4-.74,30.63-4.09,44.33l-.05.15Z"/>
+        <path d="M41.54,119.67S-6.33,120.12.71,63.85c1.98-15.83,15.55-33.32,29.05-42.6,17.17-12.49,40.61-15.39,61.35-17.05,45.51-3.3,165.16-.75,155.66,60.19-2.9,18.6-23.35,39.47-38.82,43.04M207.95,107.43s13.06,3.22,16.02,3.9c11.57,2.84,19.05,9.66,27.64,17.96,17.6,16.55,18.58,46.1,4.77,65.32-8.07,11.33-20.1,19.24-32.56,25.15l-.18.08c-26.23,11.69-54.42,16.89-82.75,19.2-29.06,1.95-65.04,5-92.14-7.62-22.31-10.39-37.95-50.84-7.23-111.76M161.4,74.8c-1.69-21.08-36.1-21.61-46.89-7.36-4.63,5.73-6.62,13.82-6.37,21.33.65,8.99-2.83,8.14,17.4,8,3.58-.02,7.25-.54,10.82-1.17,11.55-1.94,25.26-7.62,25.04-20.62v-.18ZM162.3,171.89c15.04-11.94,7.57-29.16-9.07-34.14-12.23-3.86-27.36-3.98-40.19-.66-5.33,1.78-7.73-.49-7.7,11.87.02,7.22-.26,15.13,3.49,21.51,8.53,14.1,38.42,12.37,53.31,1.54l.16-.12Z"/>
+        <path d="M626.61,18.68c31.17,17.4,25.53,55.03,22.05,85.64-1.12,10.3-3.8,34.92-4.29,39.46-2.01,17.76-6.09,35.93-15.65,51.22-20.53,33.19-62.44,44.63-99.33,44.33-29.46-.37-59.82-4.77-85.58-19.12-21.55-11.65-34.54-33.04-41.4-55.81-9.2-31.21-7.88-62.54-2.89-96.02,3.43-19.56,3.35-47.68,20.99-59.05,22.74-14.13,55.15-12.43,74.68,6.7,21.68,22.52,4.61,51.14-2.09,76.24-10.02,32.88-9.75,67.87,28.48,71.87,11.47.94,24.17-3.09,31.49-12.3,3.47-4.4,5.59-9.6,6.97-15.16,7.15-29.19-4.61-54.78-7.68-82.41-1.78-13.58,3.73-27.32,15.59-34.83,17.62-11.09,40.4-11.14,58.48-.84l.18.1Z"/>
+        <path d="M1459.16,210.12c-5.31,15.59-20.95,26.29-37.01,28.07-34.26,3.59-66.99-13.96-85.66-42.66-13.65-19.98-26.36-43.16-39.26-63.18-16.22-23.7-20.91-10.89-14.34,9.84,8.36,27.49,21.31,69.4-8.66,87.7-20.09,10.93-51.75,9.51-67.92-8.3-7.5-8.42-9.54-20.79-9.66-31.82-.52-13.97.22-30.72.21-43.09-.15-36.43-.27-68.71,4.26-107.76,5.23-34.72,51.05-38.56,78.82-31.16,32.16,8.27,45.36,36.93,59.19,64.77,5.52,11.22,22.44,46.46,32.11,47.27,9.89-1.08,6.4-25.45,4.67-35.54-1.72-7.88-4.72-16.97-6.91-25.23-2.96-8.96-4.13-19.87-.93-28.3,5.31-16.9,26.68-26.51,43.76-23.16,8.85,1.61,16.65,6.02,23.81,11.2,36.88,25.74,28.14,104.33,27.65,146.87-.64,14.4-.74,30.63-4.09,44.33l-.05.15Z"/>
+      </symbol>
+    </svg>
+    <a class="skip" href="#policy">Skip to the policy</a>
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="BUNN — home">
+        <svg viewBox="0 0 1464.54 240.85" fill="currentColor" aria-hidden="true" focusable="false"><use href="#bunn-logo" /></svg>
+      </a>
+      <a class="topbar__back" href="/">Back to bunn.world</a>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">Legal</p>
+      <h1>Privacy Policy</h1>
+      <p class="meta">BUNN Labs, Inc. · Effective 28 September 2026</p>
+      <div class="rule" aria-hidden="true"></div>
+    </section>
+
+    <div class="layout">
+      <nav class="toc" aria-label="Contents">
+        <p class="toc__label">Contents</p>
+        <ol>
+          <li><a href="#who-we-are">Who we are</a></li>
+          <li><a href="#laws">Which laws apply</a></li>
+          <li><a href="#information-we-control">Information we control</a></li>
+          <li><a href="#information-for-partners">Information for our partners</a></li>
+          <li><a href="#how-we-use">How we use it</a></li>
+          <li><a href="#sharing">Who else we share it with</a></li>
+          <li><a href="#transfers">International transfers</a></li>
+          <li><a href="#retention">How long we keep it</a></li>
+          <li><a href="#security">How we protect it</a></li>
+          <li><a href="#rights">Your rights</a></li>
+          <li><a href="#children">Children</a></li>
+          <li><a href="#changes">Changes</a></li>
+          <li><a href="#contact">Contact us</a></li>
+        </ol>
+      </nav>
+
+      <article id="policy">
+        <p class="lead">
+          BUNN Labs, Inc. (“BUNN”, “we”, “us”) builds payment software — stablecoin
+          payment links, apps for businesses and the people who pay them, and
+          point-of-sale terminals (together, the “Services”) — and runs the website
+          bunn.world. This policy explains what personal information we handle, why we
+          handle it, who we share it with, and the rights you have.
+        </p>
+        <p>
+          We act in two different roles, and the difference decides whom you should ask
+          about your information.
+        </p>
+        <div class="roles">
+          <div class="role">
+            <h3>As a controller</h3>
+            <p>
+              We decide how and why we use your account data, app analytics, device and
+              NFC data, marketing data, and what you send us through our website.
+            </p>
+            <p class="ask">For this information, ask us.</p>
+          </div>
+          <div class="role role--partner">
+            <h3>As a collector for our partners</h3>
+            <p>
+              We collect identity-verification (KYC and KYB) and transaction information
+              and pass it to regulated partners who open and operate your accounts. Each
+              partner is an independent controller of that information under its own
+              privacy notice.
+            </p>
+            <p class="ask">For this information, ask the partner.</p>
+          </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="who-we-are"><span class="num">01</span>Who we are</h2>
+        <p>
+          BUNN Labs, Inc. is responsible for the processing described in this policy
+          wherever we act as a controller.
+        </p>
+        <address class="address">
+          BUNN Labs, Inc.<br />
+          2810 North Church Street<br />
+          Wilmington, DE 19802<br />
+          United States<br />
+          <a href="mailto:support@bunn.world">support@bunn.world</a>
+        </address>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="laws"><span class="num">02</span>Which laws apply</h2>
+        <p>
+          Which data-protection laws apply depends on where you are and how you use the
+          Services:
+        </p>
+        <ul>
+          <li>
+            <strong>UAE Personal Data Protection Law</strong> — Federal Decree-Law No. 45
+            of 2021 (the “PDPL”). Our Services are built for the UAE, and we apply the PDPL
+            to information about people in the UAE.
+          </li>
+          <li>
+            <strong>DIFC Data Protection Law</strong> — DIFC Law No. 5 of 2020. It applies
+            where personal information is processed in or from the Dubai International
+            Financial Centre, including by any partner established there.
+          </li>
+          <li>
+            <strong>EU and UK GDPR</strong> — Regulation (EU) 2016/679 and its United
+            Kingdom equivalent, if you are in the European Economic Area or the United
+            Kingdom.
+          </li>
+          <li>
+            <strong>Other local laws</strong> — including the consumer privacy laws of US
+            states, where they apply to you.
+          </li>
+        </ul>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="information-we-control"><span class="num">03</span>Information we control</h2>
+
+        <h3 id="account-data">Account data</h3>
+        <p>
+          When you create an account, we collect your name, date of birth, phone number,
+          email address and residential address, and the one-time codes we send to confirm
+          your contact details. You sign in with a passkey: we store only its public key,
+          and its private key never leaves your device. For business accounts, we also
+          collect the company’s name, your role and your business contact details.
+        </p>
+
+        <h3 id="app-analytics">App analytics</h3>
+        <p>
+          We may collect information about how you use our apps — such as the screens and
+          features you use, the steps you complete, session times, the app version, crash
+          and performance reports, and an approximate location derived from your IP
+          address. We use it to understand how the Services perform and to improve them.
+          Where the law requires your consent for analytics, we ask for it first.
+        </p>
+
+        <h3 id="device-nfc-data">Device and NFC data</h3>
+        <p>
+          We collect device identifiers, the device model, operating system and app
+          version, your IP address, and language and time-zone settings. On BUNN
+          point-of-sale terminals, we also process the terminal’s identifier and status
+          and — when a terminal writes a payment link to an NFC tag — the tag’s identifier
+          and the link written to it. We use this to run and secure the Services, route
+          payments to the right business and prevent fraud.
+        </p>
+
+        <h3 id="marketing-data">Marketing data</h3>
+        <p>
+          We collect business contact details — name, job title, company, work email and
+          phone number — that you give us or that we obtain from public and professional
+          sources, such as company websites and professional networks. When we email you,
+          we may record whether the email was delivered, opened or clicked. We use this to
+          tell businesses about BUNN. Every marketing email lets you opt out, and you can
+          also write to
+          <a href="mailto:support@bunn.world">support@bunn.world</a>.
+        </p>
+
+        <h3 id="website-data">Website and enquiry data</h3>
+        <p>
+          When you contact us through our website, we collect your name, position, work
+          email, phone number, type of business and the page you contacted us from. We
+          store your enquiry in our database and forward it by email to our team so we can
+          reply.
+        </p>
+        <p>
+          Our websites do not use cookies, analytics tools or advertising pixels. When you
+          load a page, our hosting provider processes technical data — such as your IP
+          address, browser type and the pages you request — to deliver and protect the
+          site. Your browser also fetches fonts and icons from third-party providers
+          (Google Fonts, Fontshare and an open-source flag-icon library), which receive your
+          IP address as part of those requests.
+        </p>
+
+        <h3 id="communications">Communications</h3>
+        <p>
+          If you email or message us, we keep the messages and our replies so we can help
+          you and keep a record of our conversations.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="information-for-partners">
+          <span class="num">04</span>Information we collect for our partners
+        </h2>
+        <p>
+          To open and operate your accounts and move money on your behalf, we work with
+          regulated partners. We collect the information they need through our apps and
+          pass it to them:
+        </p>
+        <ul>
+          <li>
+            <strong>Identity verification (KYC)</strong> — your name, date of birth,
+            nationality, residential address and contact details; identity documents such
+            as a passport or Emirates ID; and a selfie or short video used to confirm that
+            the document belongs to you, which may involve facial comparison.
+          </li>
+          <li>
+            <strong>Business verification (KYB)</strong> — the company’s legal name,
+            registration details and documents, registered address, ownership structure,
+            ultimate beneficial owners, directors and authorised signatories.
+          </li>
+          <li>
+            <strong>Transaction data</strong> — amounts, currencies and digital assets,
+            wallet addresses, bank details, counterparties, references, transaction hashes
+            and settlement details.
+          </li>
+          <li>
+            <strong>Fund data</strong> — where you invest through a fund, your investment
+            instructions, holdings and related records.
+          </li>
+        </ul>
+        <p>
+          <strong>Each partner is an independent controller.</strong> Once a partner
+          receives this information, it decides how and why it uses it — for example, to
+          verify your identity, screen for sanctions and money-laundering risks, open and
+          operate your accounts, and keep the records its regulators require — under its
+          own privacy notice. We don’t control that processing. To ask about it, or to
+          exercise your rights over information a partner holds, contact the partner using
+          the details in its notice. If you’re not sure whom to ask, write to us and we’ll
+          point you to the right place.
+        </p>
+        <p>
+          We keep what we need to run your BUNN account — such as your verification status
+          and the transactions shown in the app — and we never use your identity documents
+          for marketing.
+        </p>
+
+        <h3 id="consent">Your consent at the handoff</h3>
+        <p>Before we send your identity documents to a partner, the app asks you to confirm:</p>
+        <blockquote class="consent">
+          <p>
+            “By continuing, your identity documents will be shared with regulated partners
+            to open your accounts and operate your fund on your behalf.”
+          </p>
+        </blockquote>
+        <p>
+          If you choose not to continue, we don’t share them — but we can’t open your
+          account without them. You can withdraw your consent at any time by writing to
+          <a href="mailto:support@bunn.world">support@bunn.world</a>. That stops future
+          sharing. It doesn’t undo sharing that has already taken place, and a partner may
+          have to keep the information it holds to meet its own legal obligations.
+        </p>
+
+        <h3 id="partners">Our partners</h3>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Partner</th>
+              <th scope="col">What it does</th>
+              <th scope="col">What it receives</th>
+              <th scope="col">Its privacy notice</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Partner">
+                <span class="partner">ARP Digital FZCO</span>
+                <span class="partner-meta">
+                  Dubai, UAE. Licensed by the Dubai Virtual Assets Regulatory Authority
+                  (VARA) to provide broker-dealer services, VASP reference VL/26/07/03.
+                </span>
+              </td>
+              <td data-label="What it does">
+                Verifies your identity, opens and operates your account, and executes,
+                converts and settles digital-asset transactions.
+              </td>
+              <td data-label="What it receives">
+                KYC and KYB data; transaction and settlement data.
+              </td>
+              <td data-label="Its privacy notice">
+                <a
+                  href="https://www.arpdigital.io/en/legal/fzco/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Data Privacy &amp; Protection Policy&nbsp;↗</a
+                >
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Partner">
+                <span class="partner">ARP Digital fund entities</span>
+                <span class="partner-meta">
+                  The funds, and the investment advisers and management companies that are
+                  subsidiaries of ARP Digital Management.
+                </span>
+              </td>
+              <td data-label="What it does">
+                Operates the fund you invest in on your behalf.
+              </td>
+              <td data-label="What it receives">
+                KYC and KYB data; investment and transaction data.
+              </td>
+              <td data-label="Its privacy notice">
+                <a
+                  href="https://www.arpdigital.io/en/legal/bsc/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Privacy Policy (funds)&nbsp;↗</a
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 id="other-providers">Other regulated providers</h3>
+        <p>
+          Where we reasonably consider it necessary to provide the Services, and to the
+          extent the law allows, we may also share this information with other third-party
+          providers that are licensed or regulated for the activity they perform — such as
+          banks, payment institutions, virtual-asset service providers, custodians and fund
+          administrators. Each acts as an independent controller under its own privacy
+          notice, and we’ll add it to the table above.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="how-we-use">
+          <span class="num">05</span>How we use information, and our legal bases
+        </h2>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Purpose</th>
+              <th scope="col">Information</th>
+              <th scope="col">Legal basis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Purpose">Create and run your account and provide the Services</td>
+              <td data-label="Information">Account data; device and NFC data</td>
+              <td data-label="Legal basis">Performing our contract with you</td>
+            </tr>
+            <tr>
+              <td data-label="Purpose">
+                Pass your information to our partners to open and operate your accounts
+              </td>
+              <td data-label="Information">KYC, KYB, transaction and fund data</td>
+              <td data-label="Legal basis">
+                Your consent at the handoff, and performing our contract with you
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Purpose">
+                Keep the Services and terminals working and secure, and prevent fraud
+              </td>
+              <td data-label="Information">
+                Account data; device and NFC data; app analytics
+              </td>
+              <td data-label="Legal basis">Our legitimate interests, and legal obligations</td>
+            </tr>
+            <tr>
+              <td data-label="Purpose">Understand and improve our apps</td>
+              <td data-label="Information">App analytics</td>
+              <td data-label="Legal basis">
+                Our legitimate interests, or your consent where the law requires it
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Purpose">Reply to your enquiries</td>
+              <td data-label="Information">Website and enquiry data; communications</td>
+              <td data-label="Legal basis">
+                Our legitimate interests, and steps you ask us to take before entering a
+                contract
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Purpose">Tell businesses about BUNN</td>
+              <td data-label="Information">Marketing data</td>
+              <td data-label="Legal basis">
+                Our legitimate interests, or your consent where the law requires it
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Purpose">
+                Meet our legal obligations and respond to lawful requests
+              </td>
+              <td data-label="Information">Any of the above</td>
+              <td data-label="Legal basis">Legal obligations</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">
+          These are the legal bases used under the EU and UK GDPR. Under the UAE PDPL and
+          the DIFC Data Protection Law, we rely on the equivalent grounds those laws
+          provide, and on your consent where they require it.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="sharing"><span class="num">06</span>Who else we share it with</h2>
+        <p>Apart from our partners, we share personal information only:</p>
+        <ul>
+          <li>
+            <strong>With service providers that work for us</strong> — including Vercel
+            (website hosting), Supabase (databases), Google Workspace (email), Resend (email
+            delivery), and providers of analytics, error-reporting and customer-support
+            tools. They may process information only on our instructions and under
+            contract.
+          </li>
+          <li>
+            <strong>With authorities</strong> — regulators, law enforcement or courts, where
+            the law requires it, or where it’s necessary to protect the rights, property or
+            safety of our users, BUNN or others.
+          </li>
+          <li>
+            <strong>In a business transaction</strong> — with a buyer, investor or
+            successor in a merger, acquisition, financing or sale of assets, who will be
+            bound by this policy.
+          </li>
+          <li><strong>With your permission</strong>, or at your direction.</li>
+        </ul>
+        <p>
+          We don’t sell personal information, and we don’t share it for cross-context
+          behavioural advertising.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="transfers"><span class="num">07</span>International transfers</h2>
+        <p>
+          BUNN Labs is based in the United States, and our Services are built mainly for
+          people in the UAE. Your information will therefore move from the UAE and other
+          countries to the United States, and to the countries where our partners and
+          service providers operate. These countries may not have data-protection laws
+          equivalent to yours, so we protect transfers as the law requires:
+        </p>
+        <ul>
+          <li>
+            <strong>From the UAE</strong>, we transfer information to countries the PDPL
+            recognises as providing adequate protection. Otherwise, we rely on appropriate
+            safeguards such as contractual protections, on the transfer being necessary to
+            perform our contract with you, or on your consent.
+          </li>
+          <li>
+            <strong>From the DIFC</strong>, we rely on an adequacy decision of the DIFC
+            Commissioner of Data Protection, or on appropriate safeguards such as the DIFC
+            standard contractual clauses.
+          </li>
+          <li>
+            <strong>From the EEA or the UK</strong>, we rely on the European Commission’s
+            standard contractual clauses (with the UK addendum), or on another transfer
+            mechanism the law recognises.
+          </li>
+        </ul>
+        <p>
+          Write to <a href="mailto:support@bunn.world">support@bunn.world</a> for details of
+          the safeguards that apply to your information.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="retention"><span class="num">08</span>How long we keep it</h2>
+        <ul>
+          <li>
+            <strong>Account data</strong> — while your account is open, and afterwards for
+            as long as we need it to resolve disputes, enforce our agreements and meet
+            legal, tax and accounting requirements.
+          </li>
+          <li>
+            <strong>App analytics, device and NFC data</strong> — only for as long as it’s
+            useful to operate and improve the Services, after which we delete or aggregate
+            it.
+          </li>
+          <li>
+            <strong>Marketing data</strong> — until you opt out. After that, we keep only
+            what we need to make sure we don’t contact you again.
+          </li>
+          <li>
+            <strong>Website enquiries and communications</strong> — as long as we need them
+            to respond and to manage any relationship that follows.
+          </li>
+        </ul>
+        <p>
+          Partners keep the information they control under their own notices.
+          Anti-money-laundering rules typically require them to keep records for at least
+          five years after a relationship ends.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="security"><span class="num">09</span>How we protect it</h2>
+        <ul>
+          <li>Our websites and Services use encrypted connections (HTTPS).</li>
+          <li>
+            Access to personal information is limited to the people who need it for their
+            work. Our public website can submit enquiries to our database but cannot read
+            them back.
+          </li>
+          <li>Credentials and keys are stored encrypted and kept out of our public code.</li>
+          <li>Passkeys keep the secret part of your sign-in on your own device.</li>
+        </ul>
+        <p>
+          No system is completely secure. If a breach affects your personal information,
+          we’ll tell you and the relevant authorities where the law requires.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="rights"><span class="num">10</span>Your rights</h2>
+        <p>Depending on where you live, you can ask us to:</p>
+        <ul>
+          <li>tell you what personal information we hold about you, and give you a copy;</li>
+          <li>correct information that’s inaccurate or incomplete;</li>
+          <li>delete your information;</li>
+          <li>
+            restrict how we use it, or object to our using it — including for direct
+            marketing, which we’ll always stop on request;
+          </li>
+          <li>
+            send your information to you, or to another organisation, in a portable format;
+          </li>
+          <li>
+            not subject you to decisions based solely on automated processing that have
+            legal or similarly significant effects on you.
+          </li>
+        </ul>
+        <p>
+          Where we rely on your consent, you can withdraw it at any time. This doesn’t
+          affect processing that has already taken place.
+        </p>
+        <p>
+          To make a request, email
+          <a href="mailto:support@bunn.world">support@bunn.world</a>. We may need to confirm
+          your identity first, and we’ll reply within the time the law allows. For
+          information a partner controls, contact the partner — see
+          <a href="#partners">Our partners</a>.
+        </p>
+        <p>
+          You also have the right to complain to a data-protection authority: in the UAE,
+          the UAE Data Office; in the DIFC, the Commissioner of Data Protection; in the EEA,
+          your local supervisory authority; and in the UK, the Information Commissioner’s
+          Office. We’d appreciate the chance to address your concern first.
+        </p>
+        <p>
+          If you live in a US state with a consumer privacy law, you have the rights that
+          law gives you, and we won’t discriminate against you for using them.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="children"><span class="num">11</span>Children</h2>
+        <p>
+          The Services are for businesses and for adults aged 18 and over. We don’t
+          knowingly collect information about children. If you believe a child has given us
+          personal information, contact us and we’ll delete it.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="changes"><span class="num">12</span>Changes to this policy</h2>
+        <p>
+          We’ll update this policy when our practices, our partners or the law change, and
+          we’ll change the effective date at the top. If a change is significant, we’ll tell
+          you in the app or by email before it takes effect.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="contact"><span class="num">13</span>Contact us</h2>
+        <p>
+          For questions, requests or complaints about privacy, write to
+          <a href="mailto:support@bunn.world">support@bunn.world</a>, or to BUNN Labs, Inc.,
+          2810 North Church Street, Wilmington, DE 19802, United States.
+        </p>
+      </article>
+    </div>
+
+    <footer class="site-footer">
+      <a class="brand" href="/" aria-label="BUNN — home">
+        <svg viewBox="0 0 1464.54 240.85" fill="currentColor" aria-hidden="true" focusable="false"><use href="#bunn-logo" /></svg>
+      </a>
+      <div class="site-footer__meta">
+        <p>BUNN Labs, Inc. 2810 North Church Street Wilmington, DE, 19802 US</p>
+        <a href="/privacy" aria-current="page">Privacy Policy</a>
+      </div>
+    </footer>
+  </body>
+</html>

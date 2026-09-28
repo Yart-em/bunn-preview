@@ -2023,9 +2023,14 @@ function App() {
           alt="BUNN"
           className="site-footer__logo"
         />
-        <p className="site-footer__text">
-          BUNN Labs, Inc. 2810 North Church Street Wilmington, DE, 19802 US
-        </p>
+        <div className="site-footer__meta">
+          <p className="site-footer__text">
+            BUNN Labs, Inc. 2810 North Church Street Wilmington, DE, 19802 US
+          </p>
+          <a className="site-footer__link" href="/privacy">
+            Privacy Policy
+          </a>
+        </div>
       </footer>
 
       {/* ── Contact popup — opens on any CTA button click ──── */}
