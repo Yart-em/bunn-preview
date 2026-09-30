@@ -1325,6 +1325,7 @@ h1 {
   flex-direction: column;
   align-items: flex-start;
   gap: 18px;
+  min-width: 0;
 }
 
 .logos-group__label {
@@ -1337,10 +1338,15 @@ h1 {
   white-space: nowrap;
 }
 
+/* Wraps as a safety net: a grid item spanning flexible columns
+   doesn't widen them, so a row too long for its group used to
+   spill into the next group or off the page. Now it can only
+   break onto a second line. */
 .logos-group__row {
   display: flex;
-  align-items: flex-start;
-  gap: 36px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 36px;
 }
 
 .logos-group__logo {
@@ -1354,12 +1360,32 @@ h1 {
   height: 33px;
 }
 
-.logos-group__logo--bridge {
-  height: 33px;
+/* Banking Circle pairs its sunburst with a two-line wordmark, so at
+   the row's 30 px its words would be too small to read; at 40 px it
+   carries the same optical weight as Lead's one-line wordmark. */
+.logos-group__logo--banking-circle {
+  height: 40px;
 }
 
-.logos-group__logo--fidelity {
-  height: 31.5px;
+/* Side by side, each group gets ~45 % of the page, but its logos
+   need ~500 px (partners) and ~460 px (compliant) — which only fits
+   from ~1160 px wide. Below 1200 px (headroom for scrollbars) stack
+   the groups, both labels on the info cards' text edge, with the
+   logo gap easing down so each row stays on one line to 601 px.
+   The phone rules further down take over at ≤600 px. */
+@media (max-width: 1200px) {
+  .logos-section {
+    grid-template-columns: 1fr;
+    row-gap: 32px;
+  }
+  .logos-group:first-child,
+  .logos-group:last-child {
+    grid-column: 1 / -1;
+    padding-left: var(--info-pad-lr, 35px);
+  }
+  .logos-group__row {
+    column-gap: clamp(20px, 3vw, 36px);
+  }
 }
 
 
@@ -2283,10 +2309,11 @@ html.no-glass .faq-item {
     flex-wrap: wrap;
   }
   .logos-group__logo,
-  .logos-group--compliant .logos-group__logo,
-  .logos-group__logo--bridge,
-  .logos-group__logo--fidelity {
+  .logos-group--compliant .logos-group__logo {
     height: clamp(14px, 4.2vw, 22px);
+  }
+  .logos-group__logo--banking-circle {
+    height: clamp(19px, 5.6vw, 29px);   /* 4:3 of the row, as on desktop */
   }
 
   /* ── Footer — one-line address, edges aligned to the cityscape

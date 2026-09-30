@@ -1695,27 +1695,17 @@ function App() {
           </div>
         </div>
         <div className="logos-group">
-          <span className="logos-group__label">Powered by</span>
+          <span className="logos-group__label">Powered with accounts from</span>
           <div className="logos-group__row">
             <img
-              src="/uaerealestate/logos/blackrock 1.png"
-              alt="BlackRock"
+              src="/uaerealestate/logos/lead-bank.svg"
+              alt="Lead Bank"
               className="logos-group__logo"
             />
             <img
-              src="/uaerealestate/logos/Fidelity_Investments_vector_logo 1.png"
-              alt="Fidelity Investments"
-              className="logos-group__logo logos-group__logo--fidelity"
-            />
-            <img
-              src="/uaerealestate/logos/bridge 1.png"
-              alt="Bridge"
-              className="logos-group__logo logos-group__logo--bridge"
-            />
-            <img
-              src="/uaerealestate/logos/okx 1.svg"
-              alt="OKX"
-              className="logos-group__logo"
+              src="/uaerealestate/logos/banking-circle.svg"
+              alt="Banking Circle"
+              className="logos-group__logo logos-group__logo--banking-circle"
             />
           </div>
         </div>
