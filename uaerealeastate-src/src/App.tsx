@@ -2017,6 +2017,9 @@ function App() {
           <p className="site-footer__text">
             BUNN Labs, Inc. 2810 North Church Street Wilmington, DE, 19802 US
           </p>
+          <a className="site-footer__link" href="/terms">
+            Terms of Service
+          </a>
           <a className="site-footer__link" href="/privacy">
             Privacy Policy
           </a>

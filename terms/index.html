@@ -1,0 +1,1105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terms of Service — BUNN</title>
+    <meta
+      name="description"
+      content="The terms for using BUNN: a technology company that connects you to regulated partners, who provide every regulated service under their own licences."
+    />
+    <link rel="icon" href="/favicon.png" />
+    <!-- Everything this page needs is self-hosted or inline: a legal
+         page should not send its readers' IP addresses to third-party
+         font or script hosts. -->
+    <style>
+      @font-face {
+        font-family: 'Engravers Gothic';
+        src: url('/fonts/EngraversGothicBT-Bold.woff2') format('woff2');
+        font-weight: 700;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Engravers Gothic';
+        src: url('/fonts/EngraversGothicBT-Regular.woff2') format('woff2');
+        font-weight: 400;
+        font-display: swap;
+      }
+
+      :root {
+        --ink: #0e0e10;
+        --text: #2c2c32;
+        --faint: #6b6b73;
+        --line: #ececef;
+        --wash: #f7f7f8;
+        --pink: #ff9bb4;
+        --pink-wash: #fff3f6;
+        --bg: #ffffff;
+        --display: 'Engravers Gothic', 'Helvetica Neue', Arial, sans-serif;
+        --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 400 16px/1.65 var(--sans);
+        -webkit-font-smoothing: antialiased;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      .skip {
+        position: absolute;
+        left: 16px;
+        top: -48px;
+        padding: 8px 14px;
+        background: var(--ink);
+        color: #fff;
+        border-radius: 8px;
+        z-index: 10;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+
+      a {
+        color: var(--ink);
+        text-decoration: underline;
+        text-decoration-color: var(--pink);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 3px;
+      }
+      a:hover {
+        text-decoration-color: var(--ink);
+      }
+      a:focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 3px;
+        border-radius: 3px;
+      }
+
+      /* ── Top bar ─────────────────────────────────────────── */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 22px 24px;
+      }
+      .brand {
+        display: inline-flex;
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .brand svg {
+        display: block;
+        height: 16px;
+        width: auto;
+      }
+      .topbar__back {
+        font-size: 14px;
+        color: var(--faint);
+        text-decoration: none;
+      }
+      .topbar__back:hover {
+        color: var(--ink);
+      }
+
+      /* ── Title block ─────────────────────────────────────── */
+      .hero {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 56px 24px 48px;
+        border-top: 1px solid var(--line);
+      }
+      .eyebrow {
+        margin: 0;
+        font: 700 12px/1 var(--display);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      h1 {
+        margin: 16px 0 18px;
+        font: 700 clamp(36px, 7vw, 68px) / 1 var(--display);
+        letter-spacing: -0.01em;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+      .meta {
+        margin: 0;
+        font-size: 15px;
+        color: var(--faint);
+      }
+      .rule {
+        width: 56px;
+        height: 3px;
+        margin-top: 28px;
+        background: var(--pink);
+        border-radius: 2px;
+      }
+
+      /* ── Contents + article ──────────────────────────────── */
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 32px;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 24px 96px;
+      }
+      @media (min-width: 1000px) {
+        .layout {
+          grid-template-columns: 220px minmax(0, 720px);
+          gap: 80px;
+        }
+      }
+
+      .toc {
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      .toc__label {
+        margin: 0 0 10px;
+        font: 700 11px/1 var(--display);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      .toc ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: toc;
+      }
+      .toc li {
+        counter-increment: toc;
+        break-inside: avoid;
+      }
+      .toc a {
+        display: flex;
+        gap: 10px;
+        padding: 5px 0;
+        color: var(--faint);
+        text-decoration: none;
+      }
+      .toc a::before {
+        content: counter(toc, decimal-leading-zero);
+        flex: 0 0 auto;
+        font-variant-numeric: tabular-nums;
+        color: #b4b4bb;
+      }
+      .toc a:hover {
+        color: var(--ink);
+      }
+      @media (max-width: 999px) {
+        .toc {
+          padding: 18px 20px;
+          border: 1px solid var(--line);
+          border-radius: 16px;
+        }
+        .toc ol {
+          columns: 2;
+          column-gap: 24px;
+        }
+      }
+      @media (max-width: 420px) {
+        .toc ol {
+          columns: 1;
+        }
+      }
+      @media (min-width: 1000px) {
+        .toc {
+          position: sticky;
+          top: 28px;
+          align-self: start;
+          max-height: calc(100vh - 56px);
+          overflow-y: auto;
+        }
+      }
+
+      article {
+        min-width: 0;
+      }
+      article > :first-child {
+        margin-top: 0;
+      }
+      article p,
+      article li {
+        margin: 12px 0;
+      }
+      .lead {
+        font-size: 18px;
+        line-height: 1.6;
+        color: var(--ink);
+      }
+      h2 {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin: 64px 0 16px;
+        font: 700 21px/1.25 var(--display);
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--ink);
+        scroll-margin-top: 24px;
+      }
+      h2 .num {
+        flex: 0 0 auto;
+        font-size: 14px;
+        color: var(--faint);
+        font-variant-numeric: tabular-nums;
+      }
+      h3 {
+        margin: 32px 0 8px;
+        font: 600 17px/1.35 var(--sans);
+        color: var(--ink);
+        scroll-margin-top: 24px;
+      }
+      strong {
+        font-weight: 600;
+        color: var(--ink);
+      }
+      ul {
+        padding-left: 20px;
+      }
+      li::marker {
+        color: var(--pink);
+      }
+
+      /* Two-roles summary */
+      .roles {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+        margin: 28px 0 8px;
+      }
+      @media (min-width: 640px) {
+        .roles {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .role {
+        padding: 22px 22px 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+      }
+      .role--partner {
+        background: var(--wash);
+        border-color: transparent;
+      }
+      .role h3 {
+        margin: 0 0 10px;
+        font: 700 13px/1.2 var(--display);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .role p {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      .role .ask {
+        margin-top: 12px;
+        font-size: 14px;
+        color: var(--faint);
+      }
+
+      .address {
+        margin: 18px 0;
+        padding: 4px 0 4px 18px;
+        border-left: 3px solid var(--pink);
+        font-style: normal;
+        line-height: 1.65;
+        color: var(--ink);
+      }
+
+      blockquote.consent {
+        margin: 20px 0;
+        padding: 20px 24px;
+        background: var(--pink-wash);
+        border-left: 3px solid var(--pink);
+        border-radius: 0 14px 14px 0;
+        font-size: 17px;
+        line-height: 1.55;
+        font-weight: 500;
+        color: var(--ink);
+      }
+      blockquote.consent p {
+        margin: 0;
+      }
+
+      /* Tables — stack into labelled cards on phones */
+      table {
+        width: 100%;
+        margin: 20px 0 8px;
+        border-collapse: collapse;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      th {
+        padding: 0 16px 12px 0;
+        border-bottom: 2px solid var(--ink);
+        text-align: left;
+        vertical-align: bottom;
+        font: 700 11px/1.3 var(--display);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+      td {
+        padding: 16px 16px 16px 0;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th:last-child,
+      td:last-child {
+        padding-right: 0;
+      }
+      .partner {
+        display: block;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .partner-meta {
+        display: block;
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--faint);
+      }
+      @media (max-width: 719px) {
+        table,
+        tbody,
+        tr,
+        td {
+          display: block;
+        }
+        thead {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
+        }
+        tr {
+          margin: 0 0 12px;
+          padding: 4px 18px;
+          border: 1px solid var(--line);
+          border-radius: 16px;
+        }
+        td {
+          padding: 12px 0;
+        }
+        td:last-child {
+          border-bottom: 0;
+        }
+        td::before {
+          content: attr(data-label);
+          display: block;
+          margin-bottom: 4px;
+          font: 700 10px/1.3 var(--display);
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--faint);
+        }
+      }
+
+      .note {
+        font-size: 14px;
+        color: var(--faint);
+      }
+
+      /* ── Footer — matches the site footer ───────────────── */
+      .site-footer {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 22px 24px 28px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        color: var(--ink);
+      }
+      .site-footer .brand svg {
+        height: 15px;
+      }
+      .site-footer__meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        text-align: right;
+      }
+      .site-footer__meta p {
+        margin: 0;
+      }
+      @media (max-width: 560px) {
+        .site-footer {
+          flex-direction: column;
+          gap: 14px;
+        }
+        .site-footer__meta {
+          align-items: flex-start;
+          text-align: left;
+        }
+      }
+
+      @media print {
+        .topbar,
+        .toc,
+        .skip {
+          display: none;
+        }
+        .layout {
+          display: block;
+          padding-bottom: 0;
+        }
+        a {
+          text-decoration: none;
+        }
+        blockquote.consent,
+        .role--partner {
+          background: none;
+        }
+        h2 {
+          break-after: avoid;
+        }
+        tr {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+      <symbol id="bunn-logo" viewBox="0 0 1464.54 240.85">
+        <path d="M1045.66,209.42c-5.31,15.59-20.95,26.29-37.01,28.07-34.26,3.59-66.99-13.96-85.66-42.66-13.65-19.98-26.36-43.16-39.26-63.18-16.22-23.7-20.91-10.89-14.34,9.84,8.36,27.49,21.31,69.4-8.66,87.7-20.09,10.93-51.75,9.51-67.92-8.3-7.5-8.42-9.54-20.79-9.66-31.82-.52-13.97.22-30.72.21-43.09-.15-36.43-.27-68.71,4.26-107.76,5.23-34.72,51.05-38.56,78.82-31.16,32.16,8.27,45.36,36.93,59.19,64.77,5.52,11.22,22.44,46.46,32.11,47.27,9.89-1.08,6.4-25.45,4.67-35.54-1.72-7.88-4.72-16.97-6.91-25.23-2.96-8.96-4.13-19.87-.93-28.3,5.31-16.9,26.68-26.51,43.76-23.16,8.85,1.61,16.65,6.02,23.81,11.2,36.88,25.74,28.14,104.33,27.65,146.87-.64,14.4-.74,30.63-4.09,44.33l-.05.15Z"/>
+        <path d="M41.54,119.67S-6.33,120.12.71,63.85c1.98-15.83,15.55-33.32,29.05-42.6,17.17-12.49,40.61-15.39,61.35-17.05,45.51-3.3,165.16-.75,155.66,60.19-2.9,18.6-23.35,39.47-38.82,43.04M207.95,107.43s13.06,3.22,16.02,3.9c11.57,2.84,19.05,9.66,27.64,17.96,17.6,16.55,18.58,46.1,4.77,65.32-8.07,11.33-20.1,19.24-32.56,25.15l-.18.08c-26.23,11.69-54.42,16.89-82.75,19.2-29.06,1.95-65.04,5-92.14-7.62-22.31-10.39-37.95-50.84-7.23-111.76M161.4,74.8c-1.69-21.08-36.1-21.61-46.89-7.36-4.63,5.73-6.62,13.82-6.37,21.33.65,8.99-2.83,8.14,17.4,8,3.58-.02,7.25-.54,10.82-1.17,11.55-1.94,25.26-7.62,25.04-20.62v-.18ZM162.3,171.89c15.04-11.94,7.57-29.16-9.07-34.14-12.23-3.86-27.36-3.98-40.19-.66-5.33,1.78-7.73-.49-7.7,11.87.02,7.22-.26,15.13,3.49,21.51,8.53,14.1,38.42,12.37,53.31,1.54l.16-.12Z"/>
+        <path d="M626.61,18.68c31.17,17.4,25.53,55.03,22.05,85.64-1.12,10.3-3.8,34.92-4.29,39.46-2.01,17.76-6.09,35.93-15.65,51.22-20.53,33.19-62.44,44.63-99.33,44.33-29.46-.37-59.82-4.77-85.58-19.12-21.55-11.65-34.54-33.04-41.4-55.81-9.2-31.21-7.88-62.54-2.89-96.02,3.43-19.56,3.35-47.68,20.99-59.05,22.74-14.13,55.15-12.43,74.68,6.7,21.68,22.52,4.61,51.14-2.09,76.24-10.02,32.88-9.75,67.87,28.48,71.87,11.47.94,24.17-3.09,31.49-12.3,3.47-4.4,5.59-9.6,6.97-15.16,7.15-29.19-4.61-54.78-7.68-82.41-1.78-13.58,3.73-27.32,15.59-34.83,17.62-11.09,40.4-11.14,58.48-.84l.18.1Z"/>
+        <path d="M1459.16,210.12c-5.31,15.59-20.95,26.29-37.01,28.07-34.26,3.59-66.99-13.96-85.66-42.66-13.65-19.98-26.36-43.16-39.26-63.18-16.22-23.7-20.91-10.89-14.34,9.84,8.36,27.49,21.31,69.4-8.66,87.7-20.09,10.93-51.75,9.51-67.92-8.3-7.5-8.42-9.54-20.79-9.66-31.82-.52-13.97.22-30.72.21-43.09-.15-36.43-.27-68.71,4.26-107.76,5.23-34.72,51.05-38.56,78.82-31.16,32.16,8.27,45.36,36.93,59.19,64.77,5.52,11.22,22.44,46.46,32.11,47.27,9.89-1.08,6.4-25.45,4.67-35.54-1.72-7.88-4.72-16.97-6.91-25.23-2.96-8.96-4.13-19.87-.93-28.3,5.31-16.9,26.68-26.51,43.76-23.16,8.85,1.61,16.65,6.02,23.81,11.2,36.88,25.74,28.14,104.33,27.65,146.87-.64,14.4-.74,30.63-4.09,44.33l-.05.15Z"/>
+      </symbol>
+    </svg>
+    <a class="skip" href="#terms">Skip to the terms</a>
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="BUNN — home">
+        <svg viewBox="0 0 1464.54 240.85" fill="currentColor" aria-hidden="true" focusable="false"><use href="#bunn-logo" /></svg>
+      </a>
+      <a class="topbar__back" href="/">Back to bunn.world</a>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">Legal</p>
+      <h1>Terms of Service</h1>
+      <p class="meta">BUNN Labs, Inc. · Effective 1 October 2026</p>
+      <div class="rule" aria-hidden="true"></div>
+    </section>
+
+    <div class="layout">
+      <nav class="toc" aria-label="Contents">
+        <p class="toc__label">Contents</p>
+        <ol>
+          <li><a href="#notice">Important notice</a></li>
+          <li><a href="#definitions">Definitions</a></li>
+          <li><a href="#what-we-do">What BUNN does</a></li>
+          <li><a href="#partners">Regulated partners</a></li>
+          <li><a href="#onboarding">Your relationship with partners</a></li>
+          <li><a href="#what-we-dont-do">What BUNN does not do</a></li>
+          <li><a href="#eligibility">Eligibility and your account</a></li>
+          <li><a href="#fees">Fees and compensation</a></li>
+          <li><a href="#risks">Risks</a></li>
+          <li><a href="#acceptable-use">Acceptable use</a></li>
+          <li><a href="#ip">Intellectual property</a></li>
+          <li><a href="#privacy">Privacy</a></li>
+          <li><a href="#liability">Liability</a></li>
+          <li><a href="#termination">Suspension and termination</a></li>
+          <li><a href="#complaints">Complaints</a></li>
+          <li><a href="#law">Governing law and disputes</a></li>
+          <li><a href="#general">General terms</a></li>
+          <li><a href="#contact">Contact us</a></li>
+        </ol>
+      </nav>
+
+      <article id="terms">
+        <p class="lead">
+          BUNN Labs, Inc. (“BUNN”, “we”, “us”) is a technology company. We build payment
+          software — stablecoin payment links, apps for businesses and the people who pay
+          them, and point-of-sale software (together, the “Platform”) — and we introduce
+          you to independent, regulated financial institutions that provide the regulated
+          services you use through it.
+        </p>
+        <div class="roles">
+          <div class="role">
+            <h3>What BUNN provides</h3>
+            <p>
+              Software and technology: the apps, payment links, point-of-sale tools,
+              dashboards and the onboarding flow that connects you to our partners.
+            </p>
+            <p class="ask">Governed by these Terms.</p>
+          </div>
+          <div class="role role--partner">
+            <h3>What our partners provide</h3>
+            <p>
+              Every regulated service — opening and operating your account, holding
+              assets, executing, converting and settling transactions, and operating
+              funds — under their own licences.
+            </p>
+            <p class="ask">Governed by each partner’s own terms.</p>
+          </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="notice"><span class="num">01</span>Important notice</h2>
+        <p>
+          <strong>BUNN is not a bank, payment institution, money transmitter, virtual-asset
+          service provider or investment firm, and is not licensed as any of these.</strong>
+          Every regulated service you use through the Platform is provided by a regulated
+          partner, under that partner’s licence and terms, and you contract with that
+          partner directly.
+        </p>
+        <p>
+          Please read these Terms together with our
+          <a href="/privacy">Privacy Policy</a> and the terms of each partner you are
+          onboarded to. By creating a BUNN account or using the Platform, you agree to these
+          Terms. If you don’t agree, please don’t use the Platform.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="definitions"><span class="num">02</span>Definitions</h2>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Term</th>
+              <th scope="col">Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Term"><strong>Platform</strong></td>
+              <td data-label="Meaning">
+                BUNN’s websites, mobile apps, payment links, point-of-sale software, APIs,
+                dashboards and related interfaces.
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Term"><strong>Technology Services</strong></td>
+              <td data-label="Meaning">
+                The software and interface functions BUNN provides itself, described in
+                section 3.
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Term"><strong>Partner</strong></td>
+              <td data-label="Meaning">
+                An independent third party, licensed or regulated for the activity it
+                performs, that provides Partner Services to you. Our current Partners are
+                listed in section 4.
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Term"><strong>Partner Services</strong></td>
+              <td data-label="Meaning">
+                Regulated services provided by a Partner — for example opening and
+                operating accounts, custody of digital assets, executing, converting and
+                settling transactions, payouts, and operating funds.
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Term"><strong>Partner Terms</strong></td>
+              <td data-label="Meaning">
+                The agreements, terms, policies and disclosures between you and a Partner.
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Term"><strong>You</strong></td>
+              <td data-label="Meaning">
+                The person or business that registers for or uses the Platform, including a
+                business using BUNN point-of-sale software or payment links.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="what-we-do"><span class="num">03</span>What BUNN does</h2>
+        <p>BUNN provides Technology Services only:</p>
+        <ul>
+          <li>
+            <strong>Interface</strong> — apps, dashboards and point-of-sale software
+            through which you view your Partner Services and give instructions about them.
+          </li>
+          <li>
+            <strong>Introduction and onboarding</strong> — showing you which Partner
+            provides each service and, with your consent, passing your onboarding
+            information to that Partner so it can run its own checks.
+          </li>
+          <li>
+            <strong>Instruction routing</strong> — transmitting the instructions you give in
+            the Platform to the relevant Partner. The Partner alone decides whether to
+            accept and carry out an instruction.
+          </li>
+          <li>
+            <strong>Business tools</strong> — payment links, point-of-sale software, NFC and
+            QR tools, reporting and integrations.
+          </li>
+          <li>
+            <strong>Support</strong> — technical support, and routing questions and
+            complaints about Partner Services to the right Partner.
+          </li>
+        </ul>
+        <p>
+          BUNN acts in its own name, and only for the Technology Services. It does not act
+          as a Partner’s agent unless that Partner has appointed it in writing and we say so
+          in section 4.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="partners"><span class="num">04</span>Regulated partners</h2>
+        <p>The Partners currently available through the Platform are:</p>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Partner</th>
+              <th scope="col">What it provides to you</th>
+              <th scope="col">Its terms and notices</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Partner">
+                <span class="partner">ARP Digital FZCO</span>
+                <span class="partner-meta">
+                  Dubai, UAE. Licensed by the Dubai Virtual Assets Regulatory Authority
+                  (VARA) to provide broker-dealer services, VASP reference VL/26/07/03.
+                </span>
+              </td>
+              <td data-label="What it provides to you">
+                Verifies your identity, opens and operates your account, holds your digital
+                assets, and executes, converts and settles digital-asset transactions.
+              </td>
+              <td data-label="Its terms and notices">
+                <a
+                  href="https://www.arpdigital.io/en/legal/fzco/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Data Privacy &amp; Protection Policy&nbsp;↗</a
+                >
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Partner">
+                <span class="partner">ARP Digital fund entities</span>
+                <span class="partner-meta">
+                  The funds, and the investment advisers and management companies that are
+                  subsidiaries of ARP Digital Management.
+                </span>
+              </td>
+              <td data-label="What it provides to you">
+                Operates the fund you invest in on your behalf.
+              </td>
+              <td data-label="Its terms and notices">
+                <a
+                  href="https://www.arpdigital.io/en/legal/bsc/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Privacy Policy (funds)&nbsp;↗</a
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          Which Partner serves you depends on the product you use and where you are. Before
+          you open any Partner Service, the app names the Partner, its regulator and its
+          licence, and asks you to accept that Partner’s terms separately. You can check a
+          Partner’s licence on its regulator’s public register.
+        </p>
+        <p>
+          Where needed to provide the Platform, we may introduce you to other providers that
+          are licensed or regulated for the activity they perform, such as banks, payment
+          institutions, virtual-asset service providers, custodians and fund administrators.
+          We’ll add each one to this table before you are onboarded to it, and we’ll tell
+          affected users in advance when a Partner is removed or its role changes.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="onboarding">
+          <span class="num">05</span>Your relationship with partners
+        </h2>
+        <p>
+          <strong>You contract directly with each Partner.</strong> When you open a Partner
+          Service, you become that Partner’s customer for that service — not BUNN’s.
+        </p>
+        <ul>
+          <li>
+            <strong>Separate acceptance.</strong> You accept each Partner’s terms on their
+            own screen. Partner Terms govern the Partner Service; these Terms govern the
+            Technology Services. If the two conflict about a Partner Service, the Partner
+            Terms prevail.
+          </li>
+          <li>
+            <strong>Partner checks.</strong> Each Partner runs its own identity (KYC and
+            KYB), anti-money-laundering, sanctions and suitability checks. We may collect
+            information on its behalf, but only the Partner decides whether to accept you,
+            set limits on your account or close it.
+          </li>
+          <li>
+            <strong>Our own screening.</strong> We may also screen you before giving you
+            access to the Platform. Passing our checks doesn’t mean a Partner will accept
+            you, and the reverse.
+          </li>
+          <li>
+            <strong>Execution.</strong> Payments, transfers, conversions, custody,
+            settlement and redemptions are carried out by the Partner. Timing, limits and
+            finality are set by its Partner Terms.
+          </li>
+          <li>
+            <strong>Partner decisions.</strong> We’re not responsible for a Partner’s
+            decision to refuse, delay, freeze or reverse a transaction or account, but we’ll
+            help you reach the Partner.
+          </li>
+          <li>
+            <strong>Change of Partner.</strong> If a Partner stops providing a service, we
+            may introduce you to another. You won’t be moved to a new Partner until you have
+            accepted its terms.
+          </li>
+        </ul>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="what-we-dont-do"><span class="num">06</span>What BUNN does not do</h2>
+        <p>BUNN does not:</p>
+        <ul>
+          <li>hold, receive, safeguard or control your money, stablecoins or other digital assets;</li>
+          <li>transmit money or digital assets for its own account or on your behalf;</li>
+          <li>issue, redeem or guarantee any stablecoin or other digital asset;</li>
+          <li>take deposits, lend money, or pay interest or returns;</li>
+          <li>operate, manage or advise on any fund;</li>
+          <li>
+            give investment, financial, legal or tax advice, or recommend any Partner Service
+            as suitable for you.
+          </li>
+        </ul>
+        <p>
+          Balances, rates, returns and fund information shown in the Platform come from the
+          relevant Partner and are shown for your information only. Nothing BUNN says about
+          a Partner Service is a guarantee by BUNN.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="eligibility">
+          <span class="num">07</span>Eligibility and your account
+        </h2>
+        <ul>
+          <li>
+            <strong>Who can use it.</strong> You must be at least 18 and able to enter into
+            binding contracts. A business must be validly incorporated and act through an
+            authorised person.
+          </li>
+          <li>
+            <strong>Where.</strong> You may not use the Platform if you are located or
+            resident in a sanctioned jurisdiction or a country where the Platform is not
+            offered, or if you are named on a sanctions list. Partners may restrict further
+            countries.
+          </li>
+          <li>
+            <strong>Accurate information.</strong> Give us true, complete and current
+            information, and keep it up to date.
+          </li>
+          <li>
+            <strong>Security.</strong> You are responsible for your devices, passkeys,
+            biometric settings and recovery methods. Tell us straight away at
+            <a href="mailto:compliance@bunn.world">compliance@bunn.world</a> if you
+            suspect unauthorised access.
+          </li>
+          <li>
+            <strong>Your account only.</strong> Don’t open accounts for other people or let
+            them use yours. Businesses may give their own staff access through the
+            Platform’s user controls.
+          </li>
+        </ul>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="fees"><span class="num">08</span>Fees and compensation</h2>
+        <p>
+          <strong>You see every fee, and who charges it, before you confirm a
+          transaction.</strong> There are two kinds:
+        </p>
+        <ul>
+          <li>
+            <strong>BUNN fees</strong> — software, point-of-sale or per-transaction platform
+            fees, as shown in the app or in your business order form. We charge these for
+            the Technology Services only.
+          </li>
+          <li>
+            <strong>Partner fees</strong> — processing, conversion, network, custody, fund
+            and payout fees, charged by the Partner under its Partner Terms.
+          </li>
+        </ul>
+        <p>
+          <strong>Partners pay BUNN.</strong> We may receive referral fees, a share of
+          revenue or other payments from Partners for introducing customers and providing
+          technology. These payments don’t increase the Partner fees shown to you unless we
+          say so. Fees exclude taxes unless stated, and you are responsible for the taxes
+          that apply to your transactions.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="risks"><span class="num">09</span>Risks</h2>
+        <p>Stablecoins and digital payments carry real risks, and you could lose money:</p>
+        <ul>
+          <li>
+            <strong>Not a bank deposit.</strong> Stablecoins and balances held with Partners
+            are not bank deposits and are not covered by deposit insurance or any government
+            guarantee.
+          </li>
+          <li>
+            <strong>Peg risk.</strong> A stablecoin can trade away from its target value, and
+            its issuer can fail or suspend redemptions.
+          </li>
+          <li>
+            <strong>Partner risk.</strong> A Partner may fail, become insolvent, lose its
+            licence or suspend services. Your protection then depends on its safeguarding
+            arrangements and the law that applies to it, not on BUNN.
+          </li>
+          <li>
+            <strong>Blockchain risk.</strong> Transactions can be irreversible. Networks can
+            congest, fork or fail, and fees can change quickly. A payment sent to the wrong
+            address usually can’t be recovered.
+          </li>
+          <li>
+            <strong>Fund and return risk.</strong> The value of a fund can fall as well as
+            rise. Any return is variable, not guaranteed, and can fall to zero.
+          </li>
+          <li>
+            <strong>Regulatory risk.</strong> Laws on digital assets change, and a service may
+            become unavailable where you are.
+          </li>
+          <li>
+            <strong>Tax.</strong> Your transactions may have tax consequences. Get your own
+            tax advice.
+          </li>
+        </ul>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="acceptable-use"><span class="num">10</span>Acceptable use</h2>
+        <p>You must not use the Platform to:</p>
+        <ul>
+          <li>
+            break any law, including anti-money-laundering, counter-terrorist-financing and
+            sanctions laws;
+          </li>
+          <li>
+            take payments for illegal goods or services, or for any business a Partner
+            prohibits;
+          </li>
+          <li>
+            give false information, impersonate anyone, or hide the real source of funds or
+            the real owner of a business;
+          </li>
+          <li>
+            interfere with, reverse-engineer, scrape or overload the Platform, or get around
+            its security or limits;
+          </li>
+          <li>resell or white-label the Platform without our written agreement.</li>
+        </ul>
+        <p>
+          BUNN and its Partners monitor activity for financial crime. We may share
+          information with Partners and authorities where the law requires or allows it, and
+          the law may stop us from telling you.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="ip"><span class="num">11</span>Intellectual property</h2>
+        <p>
+          BUNN owns the Platform, including its software, design, trademarks and content.
+          Under these Terms, we give you a limited, non-exclusive, non-transferable,
+          revocable licence to use the Platform for its intended purpose. Partner names and
+          marks belong to the Partners and are used only to identify them. If you send us
+          feedback, we may use it freely.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="privacy"><span class="num">12</span>Privacy</h2>
+        <p>
+          Our <a href="/privacy">Privacy Policy</a> explains how we handle personal
+          information. In short: we control the information we need to run the Platform.
+          With your consent at the handoff, we pass identity and transaction information to
+          the Partner that will serve you, and that Partner then controls it under its own
+          privacy notice.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="liability"><span class="num">13</span>Liability</h2>
+        <ul>
+          <li>
+            <strong>As is.</strong> We provide the Technology Services “as is” and “as
+            available”. As far as the law allows, we exclude all implied warranties,
+            including merchantability, fitness for a particular purpose and
+            non-infringement. We don’t promise the Platform will be uninterrupted or
+            error-free.
+          </li>
+          <li>
+            <strong>Partner Services.</strong> We’re not responsible for Partner Services, or
+            for any act, omission, insolvency or loss of licence of a Partner. Claims about a
+            Partner Service are made against the Partner under its Partner Terms.
+          </li>
+          <li>
+            <strong>Indirect loss.</strong> We’re not liable for indirect, incidental, special
+            or consequential loss, or for loss of profit, revenue, data or goodwill.
+          </li>
+          <li>
+            <strong>Limit.</strong> Our total liability to you for all claims about the
+            Technology Services is limited to the greater of the BUNN fees you paid in the
+            12 months before the claim and USD 100.
+          </li>
+          <li>
+            <strong>What we don’t limit.</strong> Nothing in these Terms limits liability for
+            fraud, wilful misconduct, gross negligence, or anything else the law doesn’t
+            allow us to limit, or takes away rights you have under mandatory consumer law.
+          </li>
+          <li>
+            <strong>Indemnity.</strong> If you use the Platform as a business, you’ll cover our
+            reasonable losses and costs arising from your breach of these Terms or the law,
+            or from claims by your own customers about what you sold them.
+          </li>
+        </ul>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="termination">
+          <span class="num">14</span>Suspension and termination
+        </h2>
+        <ul>
+          <li>
+            <strong>Suspension.</strong> We may suspend or restrict your access if the law or
+            a Partner requires it, if we reasonably suspect fraud, financial crime or a
+            security risk, or if you seriously breach these Terms. Where the law allows,
+            we’ll tell you why.
+          </li>
+          <li>
+            <strong>Closing your BUNN account.</strong> You can close it at any time in the
+            app or by writing to us. Closing it doesn’t close your Partner accounts — follow
+            each Partner’s process to close them and withdraw your funds.
+          </li>
+          <li>
+            <strong>Ending these Terms.</strong> We may end these Terms with 30 days’ notice,
+            or immediately for the reasons listed under Suspension.
+          </li>
+          <li>
+            <strong>What continues.</strong> Fees owed and the sections on liability, privacy
+            and governing law continue after these Terms end.
+          </li>
+        </ul>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="complaints"><span class="num">15</span>Complaints</h2>
+        <p>
+          Send complaints to
+          <a href="mailto:compliance@bunn.world">compliance@bunn.world</a>. We’ll
+          acknowledge yours within 5 business days.
+        </p>
+        <ul>
+          <li>
+            <strong>About the Technology Services</strong> — the app, payment links,
+            point-of-sale software or our support: we handle it and aim to reply in full
+            within 15 business days.
+          </li>
+          <li>
+            <strong>About a Partner Service</strong> — a payment, transfer, conversion,
+            account decision, fund or your assets: we forward it to the relevant Partner
+            within 2 business days and tell you we’ve done so. You can also complain to the
+            Partner directly.
+          </li>
+          <li>
+            <strong>If you’re not satisfied</strong> with a Partner’s final response, you may
+            be able to take it to that Partner’s regulator, as set out in its Partner Terms.
+          </li>
+        </ul>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="law"><span class="num">16</span>Governing law and disputes</h2>
+        <p>
+          These Terms are governed by the laws of the State of Delaware, United States.
+          Partner Terms are governed by the law each Partner chooses.
+        </p>
+        <p>
+          Before starting proceedings, you and BUNN will try to settle any dispute informally
+          for 30 days, starting when one side writes to the other. If it isn’t settled, the
+          state and federal courts in Delaware have jurisdiction. This doesn’t take away any
+          right you have under mandatory consumer law to bring a claim where you live.
+        </p>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="general"><span class="num">17</span>General terms</h2>
+        <ul>
+          <li>
+            <strong>Changes.</strong> We may update these Terms and will change the effective
+            date at the top. We’ll give at least 30 days’ notice of significant changes in
+            the app or by email, unless the law or a Partner requires a change sooner. Using
+            the Platform after a change takes effect means you accept it.
+          </li>
+          <li>
+            <strong>Transfer.</strong> You may not transfer your rights under these Terms. We
+            may transfer ours in a reorganisation, merger or sale of our business.
+          </li>
+          <li>
+            <strong>Severability and waiver.</strong> If part of these Terms can’t be
+            enforced, the rest still applies. Not enforcing a right doesn’t waive it.
+          </li>
+          <li>
+            <strong>Language.</strong> If a translation of these Terms conflicts with the
+            English version, the English version applies.
+          </li>
+          <li>
+            <strong>Entire agreement.</strong> These Terms, our Privacy Policy and any
+            business order form are the whole agreement between you and BUNN about the
+            Technology Services.
+          </li>
+        </ul>
+
+        <!-- ─────────────────────────────────────────────── -->
+        <h2 id="contact"><span class="num">18</span>Contact us</h2>
+        <p>For questions about these Terms, or to reach our compliance team:</p>
+        <address class="address">
+          BUNN Labs, Inc.<br />
+          2810 North Church Street<br />
+          Wilmington, DE 19802<br />
+          United States<br />
+          <a href="mailto:compliance@bunn.world">compliance@bunn.world</a>
+        </address>
+      </article>
+    </div>
+
+    <footer class="site-footer">
+      <a class="brand" href="/" aria-label="BUNN — home">
+        <svg viewBox="0 0 1464.54 240.85" fill="currentColor" aria-hidden="true" focusable="false"><use href="#bunn-logo" /></svg>
+      </a>
+      <div class="site-footer__meta">
+        <p>BUNN Labs, Inc. 2810 North Church Street Wilmington, DE, 19802 US</p>
+        <a href="/terms" aria-current="page">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+      </div>
+    </footer>
+  </body>
+</html>
