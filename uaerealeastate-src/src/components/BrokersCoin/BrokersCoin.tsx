@@ -194,6 +194,12 @@ export default function BrokersCoin({ className = '' }: { className?: string }) 
       onMouseLeave={() => setHovered(false)}
     >
       <Canvas
+        /* Measure on resize only, not on scroll: this canvas now
+         * mounts while the visitor may be scrolling, and R3F's
+         * scroll-debounced measure would hold it at zero size (no
+         * renderer, no coin) until the scrolling paused. See the
+         * hero globe's Canvas in Globe.tsx. */
+        resize={{ scroll: false }}
         gl={{ alpha: true, antialias: true }}
         camera={{ position: [0, 0, 2.2], fov: 40 }}
         style={{ width: '100%', height: '100%', background: 'transparent' }}

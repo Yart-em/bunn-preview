@@ -372,6 +372,19 @@ export default function Globe({
    * listener on the page inside the globe's mount frame. */
   return (
     <Canvas
+      /* scroll: false — R3F measures its container with
+       * react-use-measure, by default ALSO on every scroll (to keep
+       * size.top/left current), and that version runs its
+       * ResizeObserver callback through the same 50 ms scroll
+       * debounce. Each scroll event restarts the timer, and Lenis
+       * fires one every frame while it eases, so a visitor who kept
+       * scrolling from before the 2 s mount got no size, no renderer
+       * and no globe until they paused — and then the whole start-up
+       * in one frame. Nothing here reads size.top/left (R3F's pointer
+       * maths uses offsetX/Y; OrbitControls listens to DOM events),
+       * and the canvas only changes size with the viewport, which
+       * the ResizeObserver still sees. */
+      resize={{ scroll: false }}
       camera={{ position: [0, 0.32, 3.1], fov: 45 }}
       /* 1.75 instead of 2: the canvas is 100 vw × 200 vh, so full
        * retina resolution costs ~30 % more GPU raster work for a
