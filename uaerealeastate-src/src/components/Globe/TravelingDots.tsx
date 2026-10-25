@@ -1,10 +1,10 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import type { Arc } from './Arcs';
 import { RIBBON_HEIGHT } from './Arcs';
-import { COLOR_FLOW } from './constants';
-import { ARCS_END, PINS_END, fadeAt } from './entry';
+import { ARCS_END, PINS_END, entryTime, fadeAt } from './entry';
+import { CURRENCIES, coinFaceCanvas, coinSideCanvas } from './coinCanvases';
 
 type Traveler = {
   arcIndex: number;
@@ -23,7 +23,6 @@ const MAX_SPEED = 0.1;
 
 const COIN_RADIUS = 0.030;
 const COIN_THICKNESS = 0.015;
-const STRIPES_AROUND = 36;
 
 /** Phase at which a coin stops rolling and starts the arrival
  *  animation. Set close to 1.0 so the coin reaches the *geographic*
@@ -50,90 +49,15 @@ const ARRIVAL_TOTAL =
  *  full height (0.030 — 25% larger to match the bigger coins). */
 const PEDESTAL_TOP_LIFT = 0.030;
 
-/** Currency symbols to mint, distributed across travelers. */
-const CURRENCIES = ['$', '€', '£', '¥', '₹'];
-
-const OUTLINE = '#272727';
-const STROKE = 4; // ≈ 1 screen pixel at our texture resolution
-
-function drawCurrencyGlyph(
-  ctx: CanvasRenderingContext2D,
-  glyph: string,
-  cx: number,
-  cy: number,
-  size: number,
-) {
-  const fontSize = Math.round(size * 0.55);
-  ctx.font = `900 ${fontSize}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  // Filled glyph in pink (matches the coin disc) with a thin outline
-  // for a clean "stroke around bold body" look.
-  ctx.fillStyle = COLOR_FLOW;
-  ctx.fillText(glyph, cx, cy);
-  ctx.lineWidth = STROKE;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = OUTLINE;
-  ctx.strokeText(glyph, cx, cy);
-}
-
-function makeFaceTexture(glyph: string): THREE.CanvasTexture {
-  const size = 256;
-  const c = document.createElement('canvas');
-  c.width = size;
-  c.height = size;
-  const ctx = c.getContext('2d')!;
-
-  const r = size / 2;
-
-  // Pink disc body.
-  ctx.fillStyle = COLOR_FLOW;
-  ctx.beginPath();
-  ctx.arc(r, r, r - STROKE / 2, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Outer rim outline.
-  ctx.lineWidth = STROKE;
-  ctx.strokeStyle = OUTLINE;
-  ctx.beginPath();
-  ctx.arc(r, r, r - STROKE / 2, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Inner ring outline.
-  ctx.beginPath();
-  ctx.arc(r, r, r * 0.78, 0, Math.PI * 2);
-  ctx.stroke();
-
-  drawCurrencyGlyph(ctx, glyph, r, r + size * 0.03, size);
-
-  const tex = new THREE.CanvasTexture(c);
+/** A texture over one of the coin canvases (coinCanvases.ts);
+ *  `repeatX` for the rim's stripes, which wrap around the coin. */
+function makeTexture(canvas: HTMLCanvasElement, repeatX = false) {
+  const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  tex.needsUpdate = true;
-  return tex;
-}
-
-function makeSideTexture(): THREE.CanvasTexture {
-  const w = 1024;
-  const h = 64;
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext('2d')!;
-  ctx.fillStyle = COLOR_FLOW;
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = OUTLINE;
-  for (let i = 0; i < STRIPES_AROUND; i++) {
-    const x = (i / STRIPES_AROUND) * w;
-    ctx.fillRect(x, 0, STROKE, h);
+  if (repeatX) {
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
   }
-  ctx.fillRect(0, 0, w, STROKE);
-  ctx.fillRect(0, h - STROKE, w, STROKE);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
   tex.anisotropy = 4;
   tex.needsUpdate = true;
   return tex;
@@ -143,23 +67,26 @@ const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
 export default function TravelingDots({
   arcs,
+  entryStart,
   dissolveProgress = 0,
 }: {
   arcs: Arc[];
+  /** The globe's entry clock (see entry.ts). */
+  entryStart: RefObject<number | null>;
   /** Scroll-driven dissolve (0..1). Coins fly outward + spin
    *  and fade out as progress climbs. */
   dissolveProgress?: number;
 }) {
   /* Built synchronously during the first render (not in an effect +
    * setState, which added the coins one commit later) so the coin
-   * meshes exist in the Globe's very first commit — that's the commit
-   * ShaderWarmup compiles, so the coins' textured MeshBasicMaterial
-   * program is warmed with everything else instead of compiling
-   * synchronously on the frame the coins first appear. */
+   * meshes exist in the coins stage's first commit — that's the commit
+   * its Stage compiles (Globe.tsx), so the coins' textured
+   * MeshBasicMaterial program is ready before they are shown instead
+   * of compiling synchronously on the frame they first appear. */
   const textures = useMemo(
     () => ({
-      faces: CURRENCIES.map(makeFaceTexture),
-      side: makeSideTexture(),
+      faces: CURRENCIES.map((_, i) => makeTexture(coinFaceCanvas(i))),
+      side: makeTexture(coinSideCanvas(), true),
     }),
     [],
   );
@@ -218,7 +145,6 @@ export default function TravelingDots({
   }, [textures, travelers]);
 
   const groupRefs = useRef<Array<THREE.Group | null>>([]);
-  const startRef = useRef<number | null>(null);
 
   // Scratch math helpers — declared once.
   const yAxis = useMemo(() => new THREE.Vector3(0, 1, 0), []);
@@ -280,8 +206,7 @@ export default function TravelingDots({
   const tmpProj = useMemo(() => new THREE.Vector3(), []);
 
   useFrame((state, delta) => {
-    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const tEntry = state.clock.elapsedTime - startRef.current;
+    const tEntry = entryTime(entryStart, state.clock.elapsedTime);
     const fade = fadeAt(tEntry, ARCS_END, PINS_END);
     const now = state.clock.elapsedTime;
 

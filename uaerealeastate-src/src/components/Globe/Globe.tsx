@@ -1,18 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import DotSphere from './DotSphere';
 import Arcs, { useArcs } from './Arcs';
 import TravelingDots from './TravelingDots';
+import { prewarmCoinCanvases } from './coinCanvases';
 import DubaiMarker from './DubaiMarker';
 import CountryCards from './CountryCards';
 import { useGlobeDots } from './dots';
 import { latLonToVec3 } from './geo';
 import { DUBAI } from './constants';
+import { ARCS_STAGE_AT, COINS_STAGE_AT, entryTime } from './entry';
 
 /** Upper bound on how long the globe's first frame waits for
- *  ShaderWarmup. A first-visit (cold shader cache) warm-up measured
+ *  ShaderWarmup (and a Stage for its own compile). A first-visit
+ *  (cold shader cache) warm-up measured
  *  180–235 ms on an M4 Pro in both Chromium and WebKit, desktop and
  *  iPhone-sized. That time is spent in the browser's GPU process /
  *  driver shader compiler, so it grows on slower devices: 1.5 s
@@ -22,64 +33,126 @@ import { DUBAI } from './constants';
 const SHADER_WARMUP_TIMEOUT_MS = 1500;
 
 /**
- * Compiles every material in the scene BEFORE the globe's first
- * frame, via renderer.compileAsync: with KHR_parallel_shader_compile
- * the browser links the programs off the main thread and three polls
- * their COMPLETION_STATUS instead of blocking on it. Without this the
- * first draw compiled + linked every program synchronously — on a
- * first visit (cold GPU shader cache) that froze the page for
- * 200–300 ms right as the dots began to gather.
+ * Compiles every material under `object` via renderer.compileAsync,
+ * then calls `onReady`: with KHR_parallel_shader_compile the browser
+ * links the programs off the main thread and three polls their
+ * COMPLETION_STATUS instead of blocking on it. Without this the first
+ * draw compiled + linked every program synchronously — on a first
+ * visit (cold GPU shader cache) that froze the page for 200–300 ms
+ * right as the dots began to gather. Returns a cancel function.
+ */
+function compileThen(
+  gl: THREE.WebGLRenderer,
+  object: THREE.Object3D,
+  camera: THREE.Camera,
+  scene: THREE.Scene,
+  onReady: () => void,
+): () => void {
+  /* Without KHR_parallel_shader_compile there is no non-blocking
+   * way to wait: compileAsync would only log a console warning and
+   * hand over to a first draw that compiles synchronously anyway.
+   * Go straight on there, exactly as before. */
+  if (!gl.extensions.has('KHR_parallel_shader_compile')) {
+    onReady();
+    return () => {};
+  }
+  let settled = false;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(safety);
+    onReady();
+  };
+  /* compileAsync's promise has no timeout: it polls until every
+   * program reports complete, so a driver that never reports would
+   * keep the globe hidden for good. Past the cap it is shown
+   * anyway — any program still compiling is then finished
+   * synchronously by the first draw, exactly as it was before this
+   * warm-up existed. */
+  const safety = setTimeout(finish, SHADER_WARMUP_TIMEOUT_MS);
+  /* Its own task, so the main-thread half of compile() (shader
+   * source assembly + the GL calls) doesn't lengthen the task that
+   * just committed the objects. */
+  const kick = setTimeout(() => {
+    try {
+      gl.compileAsync(object, camera, scene).then(finish, finish);
+    } catch {
+      finish();
+    }
+  }, 0);
+  return () => {
+    settled = true;
+    clearTimeout(safety);
+    clearTimeout(kick);
+  };
+}
+
+/**
+ * Compiles the globe's first commit — the depth occluder and the dot
+ * cloud — BEFORE its first frame (see compileThen). The arcs, pedestal
+ * and coins aren't in that commit: their Stages add and compile them
+ * later.
  *
  * Rendered as the LAST child of the scene group: passive effects run
  * after every sibling's objects are attached, so compileAsync sees
- * the whole scene (dots, occluder, arcs, pedestal, coins).
+ * the whole scene.
  */
 function ShaderWarmup({ onReady }: { onReady: () => void }) {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera);
 
-  useEffect(() => {
-    /* Without KHR_parallel_shader_compile there is no non-blocking
-     * way to wait: compileAsync would only log a console warning and
-     * hand over to a first draw that compiles synchronously anyway.
-     * Render straight away there, exactly as before. */
-    if (!gl.extensions.has('KHR_parallel_shader_compile')) {
-      onReady();
-      return;
-    }
-    let settled = false;
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(safety);
-      onReady();
-    };
-    /* compileAsync's promise has no timeout: it polls until every
-     * program reports complete, so a driver that never reports would
-     * keep the globe hidden for good. Past the cap the globe renders
-     * anyway — any program still compiling is then finished
-     * synchronously by the first draw, exactly as it was before this
-     * warm-up existed. */
-    const safety = setTimeout(finish, SHADER_WARMUP_TIMEOUT_MS);
-    /* Its own task, so the main-thread half of compile() (shader
-     * source assembly + the GL calls) doesn't lengthen the task that
-     * just built and committed the dot lattice. */
-    const kick = setTimeout(() => {
-      try {
-        gl.compileAsync(scene, camera).then(finish, finish);
-      } catch {
-        finish();
-      }
-    }, 0);
-    return () => {
-      settled = true;
-      clearTimeout(safety);
-      clearTimeout(kick);
-    };
-  }, [gl, scene, camera, onReady]);
+  useEffect(
+    () => compileThen(gl, scene, camera, scene, onReady),
+    [gl, scene, camera, onReady],
+  );
 
   return null;
+}
+
+/**
+ * One staged piece of the scene (see entry.ts). Mounts its children
+ * once the entry clock reaches `at` — a React commit of its own, in a
+ * frame of its own — then keeps them hidden until their shaders have
+ * compiled off the main thread, so neither the mount nor a shader
+ * compile lands on the frames that animate them. Their fades run on
+ * the shared entry clock, so they look exactly as if they had been
+ * there from the first frame.
+ */
+function Stage({
+  at,
+  entryStart,
+  children,
+}: {
+  at: number;
+  entryStart: RefObject<number | null>;
+  children: ReactNode;
+}) {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+  const groupRef = useRef<THREE.Group>(null);
+  const [mounted, setMounted] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useFrame((state) => {
+    if (!mounted && entryTime(entryStart, state.clock.elapsedTime) >= at) {
+      setMounted(true);
+    }
+  });
+
+  useEffect(() => {
+    const group = groupRef.current;
+    if (!mounted || !group) return;
+    return compileThen(gl, group, camera, scene, () => setReady(true));
+  }, [mounted, gl, scene, camera]);
+
+  if (!mounted) return null;
+  return (
+    <group ref={groupRef} visible={ready}>
+      {children}
+    </group>
+  );
 }
 
 function Scene({
@@ -102,7 +175,21 @@ function Scene({
   onShadersReady: () => void;
 }) {
   const dots = useGlobeDots();
-  const arcs = useArcs(dots?.landVectors ?? null);
+  const arcs = useArcs(dots);
+  /** The entry clock (see entry.ts) every animated piece below reads. */
+  const entryStart = useRef<number | null>(null);
+  /** Set once the scroll dissolve has taken the Dubai pedestal away
+   *  — its later returns fade in on their own clock (DubaiMarker). */
+  const pedestalRemoved = useRef(false);
+  useEffect(() => {
+    if (dissolveProgress > 0) pedestalRemoved.current = true;
+  }, [dissolveProgress]);
+  /* Draw the coins' texture canvases in idle time while the dots
+   * gather, so the coins stage doesn't have to. */
+  const hasDots = dots !== null;
+  useEffect(() => {
+    if (hasDots) return prewarmCoinCanvases();
+  }, [hasDots]);
 
   /** The Dubai-centred Y rotation. Manual auto-rotation
    *  accumulates from here. */
@@ -191,6 +278,7 @@ function Scene({
 
       <DotSphere
         dots={dots}
+        entryStart={entryStart}
         dissolveProgress={dissolveProgress}
         dotSize={dotSize}
       />
@@ -204,11 +292,27 @@ function Scene({
           dissolve begins (driven by `dissolveProgress` inside
           Arcs); pedestal hides binary because nothing rolls
           onto it during dissolve. */}
-      <Arcs arcs={arcs} dissolveProgress={dissolveProgress} />
-      {dissolveProgress <= 0 && (
-        <DubaiMarker landVectors={dots.landVectors} />
-      )}
-      <TravelingDots arcs={arcs} dissolveProgress={dissolveProgress} />
+      <Stage at={ARCS_STAGE_AT} entryStart={entryStart}>
+        <Arcs
+          arcs={arcs}
+          entryStart={entryStart}
+          dissolveProgress={dissolveProgress}
+        />
+        {dissolveProgress <= 0 && (
+          <DubaiMarker
+            dest={dots.dest}
+            entryStart={entryStart}
+            returning={pedestalRemoved}
+          />
+        )}
+      </Stage>
+      <Stage at={COINS_STAGE_AT} entryStart={entryStart}>
+        <TravelingDots
+          arcs={arcs}
+          entryStart={entryStart}
+          dissolveProgress={dissolveProgress}
+        />
+      </Stage>
       {/* Keep LAST — see ShaderWarmup. */}
       <ShaderWarmup onReady={onShadersReady} />
     </group>
@@ -252,24 +356,20 @@ export default function Globe({
 }) {
   /* The render loop is held at 'never' until ShaderWarmup has
    * compiled the scene (the canvas is still empty then: Scene renders
-   * nothing until the land mask has loaded). The entry choreography
-   * — dot gather, then arcs, pedestal and coins — is clocked from
-   * each component's FIRST useFrame, and R3F restarts its clock when
-   * the loop leaves 'never', so the sequence keeps its exact timing
-   * and simply begins on the first frame that is actually drawn. */
+   * nothing until the dot data is in). The entry choreography — dot
+   * gather, then arcs, pedestal and coins — runs on the entry clock,
+   * which starts on the first useFrame, and R3F restarts its clock
+   * when the loop leaves 'never', so the sequence keeps its exact
+   * timing and simply begins on the first frame that is actually
+   * drawn. */
   const [shadersReady, setShadersReady] = useState(false);
   const onShadersReady = useCallback(() => setShadersReady(true), []);
 
-  useEffect(() => {
-    const tick = () => window.dispatchEvent(new Event('resize'));
-    const a = requestAnimationFrame(tick);
-    const b = setTimeout(tick, 100);
-    return () => {
-      cancelAnimationFrame(a);
-      clearTimeout(b);
-    };
-  }, []);
-
+  /* No synthetic window 'resize' at mount (there used to be one, at
+   * the next frame and again 100 ms later): the Canvas sizes itself
+   * from its own ResizeObserver — verified at desktop and phone sizes
+   * in Chromium and WebKit — while the fake event re-ran every resize
+   * listener on the page inside the globe's mount frame. */
   return (
     <Canvas
       camera={{ position: [0, 0.32, 3.1], fov: 45 }}

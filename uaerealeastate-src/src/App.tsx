@@ -22,6 +22,9 @@ import { BlurInWords, RiseInChars } from './components/HeroEntrance/HeroEntrance
 import { StaggerText } from './components/StaggerText/StaggerText';
 import { useCardNotch } from './hooks/useCardNotch';
 import { getLenis } from './lib/lenis';
+import { whenIdle } from './lib/idle';
+// No three.js in here: it only starts the globe's dot-lattice worker.
+import { loadGlobeDots } from './components/Globe/globeData';
 import { CTA_SELECTOR, requestContactOpen } from './lib/contact';
 import { BELOW_FOLD_STAGES } from './belowFoldStages';
 // Code-split: every section after the hero (BelowFold.tsx) and the
@@ -108,6 +111,8 @@ const ROTATOR_START = 2.0; // after H1 line 2 ends
 const ROTATOR_WORD_DELAY = 0.15;
 /** Globe mounts right after the last H1 line appears (~1.95 s). */
 const GLOBE_MOUNT_DELAY_MS = 2000;
+/** Longest the globe's dot-data build waits for an idle period. */
+const GLOBE_DOTS_IDLE_TIMEOUT_MS = 1000;
 /* Card entrance animation delay lives in index.css under
  * `.hero-card .glass-surface { animation-delay }` — kept in
  * sync at 2 s (same time as globe mount). */
@@ -274,8 +279,17 @@ function HeroScrollScene({
     /* Warm the lazy three.js chunk immediately so it's parsed and
      * ready by the time the 2 s mount delay elapses. */
     import('./components/Globe/Globe');
+    /* And have the dots worker build the globe's dot lattice in the
+     * first idle period, so the data is waiting at mount and the
+     * dots are in the globe's very first commit. */
+    const cancelIdle = whenIdle(() => {
+      loadGlobeDots().catch(() => {});
+    }, GLOBE_DOTS_IDLE_TIMEOUT_MS);
     const t = setTimeout(() => setGlobeReady(true), GLOBE_MOUNT_DELAY_MS);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      cancelIdle();
+    };
   }, []);
   /** False once the (200 vh) canvas has scrolled fully above the
    *  viewport — flips the R3F frameloop off so the GPU stops
@@ -792,25 +806,6 @@ const BELOW_FOLD_DELAY_MS = 4500;
 const BELOW_FOLD_START_TIMEOUT_MS = 1000;
 const BELOW_FOLD_STAGE_TIMEOUT_MS = 500;
 const SCROLL_INTENT_EVENTS = ['wheel', 'touchstart', 'keydown', 'scroll'];
-
-/** Run `cb` once the main thread is idle (at most `timeout` ms
- *  later). Safari has no requestIdleCallback: there `cb` runs just
- *  after the next frame, so each step still gets a frame of its
- *  own. Returns a cancel function. */
-function whenIdle(cb: () => void, timeout: number): () => void {
-  if (typeof window.requestIdleCallback === 'function') {
-    const id = window.requestIdleCallback(cb, { timeout });
-    return () => window.cancelIdleCallback(id);
-  }
-  let t = 0;
-  const raf = requestAnimationFrame(() => {
-    t = window.setTimeout(cb, 0);
-  });
-  return () => {
-    cancelAnimationFrame(raf);
-    clearTimeout(t);
-  };
-}
 
 /** Mounts BelowFold one section at a time, top to bottom: each
  *  idle callback adds the next section in its own transition and

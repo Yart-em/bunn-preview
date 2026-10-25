@@ -1,16 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import {
-  COLOR_ARC,
-  COLOR_ARC_BOTTOM,
-  COLOR_ARC_SIDE,
-  DUBAI,
-  GLOBE_RADIUS,
-} from './constants';
-import { latLonToVec3 } from './geo';
-import { snapToNearestLandDot } from './dots';
-import { ARCS_END, PINS_END, fadeAt } from './entry';
+import { COLOR_ARC, COLOR_ARC_BOTTOM, COLOR_ARC_SIDE } from './constants';
+import { ARCS_END, PINS_END, entryTime, fadeAt } from './entry';
 
 /** 20% bigger diameter than the rolling coins (coin radius 0.030 →
  *  pedestal radius 0.030 × 1.2 = 0.036). */
@@ -27,17 +19,23 @@ const DOT_HEIGHT = 0.030;
  * time the pins do.
  */
 export default function DubaiMarker({
-  landVectors,
+  dest,
+  entryStart,
+  returning,
 }: {
-  landVectors: THREE.Vector3[];
+  /** Dubai, snapped to its nearest land dot. */
+  dest: THREE.Vector3;
+  /** The globe's entry clock (see entry.ts). */
+  entryStart: RefObject<number | null>;
+  /** True once the scroll dissolve has unmounted the pedestal. */
+  returning: RefObject<boolean>;
 }) {
   const yAxis = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
   /** Position + orientation, computed once from the snapped
    *  Dubai land dot. */
   const placement = useMemo(() => {
-    const target = latLonToVec3(DUBAI[0], DUBAI[1], GLOBE_RADIUS);
-    const snapped = snapToNearestLandDot(target, landVectors);
+    const snapped = dest.clone();
     const radial = snapped.clone().normalize();
     // Pedestal base sits on the earth surface (= radius 1.0, where
     // every arc terminates) so the arcs visually CONNECT to the
@@ -47,7 +45,7 @@ export default function DubaiMarker({
     const position = snapped.clone().addScaledVector(radial, DOT_HEIGHT / 2);
     const quaternion = new THREE.Quaternion().setFromUnitVectors(yAxis, radial);
     return { position, quaternion };
-  }, [landVectors, yAxis]);
+  }, [dest, yAxis]);
 
   const cylinderGeometry = useMemo(
     () => new THREE.CylinderGeometry(DOT_RADIUS, DOT_RADIUS, DOT_HEIGHT, 48, 1, false),
@@ -66,8 +64,15 @@ export default function DubaiMarker({
 
   useFrame((state) => {
     if (!groupRef.current) return;
-    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const t = state.clock.elapsedTime - startRef.current;
+    const now = state.clock.elapsedTime;
+    /* The first time, the pedestal mounts with the arcs stage, after
+     * the entry has begun: its fade runs on the shared entry clock.
+     * Each time it comes back after the dissolve took it away, it
+     * fades in again measured from its return, as it always has. */
+    if (startRef.current === null) {
+      startRef.current = returning.current ? now : now - entryTime(entryStart, now);
+    }
+    const t = now - startRef.current;
     const k = fadeAt(t, ARCS_END, PINS_END);
     groupRef.current.children.forEach((child) => {
       const mat = (child as THREE.Mesh).material as

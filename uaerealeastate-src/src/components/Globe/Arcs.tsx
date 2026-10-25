@@ -1,18 +1,13 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, type RefObject } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
-import { latLonToVec3, arcCurve } from './geo';
-import { snapToNearestLandDot } from './dots';
-import {
-  COLOR_ARC,
-  DUBAI,
-  GLOBE_RADIUS,
-  SOURCES,
-} from './constants';
-import { ARCS_END, GATHER_END, fadeAt } from './entry';
+import { arcCurve } from './geo';
+import type { GlobeDots } from './dots';
+import { COLOR_ARC, GLOBE_RADIUS } from './constants';
+import { ARCS_END, GATHER_END, entryTime, fadeAt } from './entry';
 
 export type Arc = {
   curve: THREE.QuadraticBezierCurve3;
@@ -25,20 +20,18 @@ export type Arc = {
   planeNormal: THREE.Vector3;
 };
 
-export function useArcs(landVectors: THREE.Vector3[] | null): Arc[] {
+/** One arc per SOURCES origin into Dubai. The endpoints come
+ *  pre-snapped to their nearest land dots (lattice.ts). */
+export function useArcs(
+  dots: Pick<GlobeDots, 'dest' | 'sources'> | null,
+): Arc[] {
   return useMemo(() => {
-    if (!landVectors || landVectors.length === 0) return [];
+    if (!dots) return [];
 
-    const dest = snapToNearestLandDot(
-      latLonToVec3(DUBAI[0], DUBAI[1], GLOBE_RADIUS),
-      landVectors,
-    );
+    const dest = dots.dest.clone();
 
-    return SOURCES.map(({ lat, lon }) => {
-      const start = snapToNearestLandDot(
-        latLonToVec3(lat, lon, GLOBE_RADIUS),
-        landVectors,
-      );
+    return dots.sources.map((source) => {
+      const start = source.clone();
       const curve = arcCurve(start, dest, GLOBE_RADIUS);
       const points = curve.getPoints(64);
       const planeNormal = new THREE.Vector3()
@@ -47,7 +40,7 @@ export function useArcs(landVectors: THREE.Vector3[] | null): Arc[] {
         .normalize();
       return { curve, points, start, end: dest, planeNormal };
     });
-  }, [landVectors]);
+  }, [dots]);
 }
 
 const FULL_OPACITY = 1;
@@ -66,9 +59,12 @@ export const RIBBON_HEIGHT = 0;
 
 export default function Arcs({
   arcs,
+  entryStart,
   dissolveProgress = 0,
 }: {
   arcs: Arc[];
+  /** The globe's entry clock (see entry.ts). */
+  entryStart: RefObject<number | null>;
   /** Once dissolveProgress > 0, the arcs fade out over a very
    *  short scroll range (≈10 px of scroll = 0.011 of progress)
    *  so the lines vanish quickly but not as a hard binary
@@ -76,7 +72,6 @@ export default function Arcs({
   dissolveProgress?: number;
 }) {
   const { size } = useThree();
-  const startRef = useRef<number | null>(null);
 
   /** One Line2 per arc. Each line owns its own LineMaterial so the
    *  fade-in opacity ramps independently from any other LineMaterial
@@ -133,8 +128,7 @@ export default function Arcs({
   }, [lines]);
 
   useFrame((state) => {
-    if (startRef.current === null) startRef.current = state.clock.elapsedTime;
-    const t = state.clock.elapsedTime - startRef.current;
+    const t = entryTime(entryStart, state.clock.elapsedTime);
     const k = fadeAt(t, GATHER_END, ARCS_END) * FULL_OPACITY;
     /* Dissolve fade: arcs hold on for the first ~50 px of
      * scroll inside the dissolve span (so cards + coins fly
