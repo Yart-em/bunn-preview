@@ -817,6 +817,10 @@ h1 {
      (Arial). Declaring it here keeps every CTA, anchor or button,
      on Engravers. */
   font-family: 'Engravers Gothic', 'Satoshi', sans-serif;
+  /* Same reason: <button> gets text-align: center from the UA
+     stylesheet, which centred the popup submit's label in its
+     flex slot. Every CTA reads label-left, arrow-right. */
+  text-align: left;
   font-size: clamp(10px, 0.97vw, 14px);
   /* Bold weight on the CTA label per spec. */
   font-weight: 700;

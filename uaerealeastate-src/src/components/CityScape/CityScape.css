@@ -117,6 +117,28 @@
 .border-glow-card.cityscape-cta-glow::after {
   mix-blend-mode: normal;
 }
+/* BorderGlow's mesh border (::before) paints its white gradients
+   under an OPAQUE padding-box fill of --card-bg, so only the 1px
+   border ring shows. This pill's --card-bg is transparent (the
+   glass must show through), so nothing covered the gradients and
+   hovering near an edge flooded half the pill with solid white.
+   Cut the layer down to the ring with a mask instead — full box
+   minus content box — still intersected with the cursor-facing
+   cone, so it reads like the hero CTA's edge line. */
+.border-glow-card.cityscape-cta-glow::before {
+  mask-image:
+    conic-gradient(
+      from var(--cursor-angle) at center,
+      black calc(var(--cone-spread) * 1%),
+      transparent calc((var(--cone-spread) + 15) * 1%),
+      transparent calc((100 - var(--cone-spread) - 15) * 1%),
+      black calc((100 - var(--cone-spread)) * 1%)
+    ),
+    linear-gradient(#000 0 0),
+    linear-gradient(#000 0 0);
+  mask-clip: border-box, content-box, border-box;
+  mask-composite: intersect, exclude, add;
+}
 
 /* Button label + arrow render BLACK (overrides .cta-fab's #fff). */
 .border-glow-card.cityscape-cta-glow .cta-fab {
