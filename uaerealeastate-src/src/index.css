@@ -1,6 +1,8 @@
 /* Self-host Engravers Gothic as woff2 (supported by every browser we
    target, incl. iOS Safari). font-display: swap → Satoshi shows
-   immediately and is replaced once the file lands. */
+   immediately and is replaced once the file lands. index.html
+   preloads both files: keep its two hrefs in step with these URLs,
+   or each font is downloaded twice. */
 @font-face {
   font-family: 'Engravers Gothic';
   src: url('/uaerealestate/fonts/EngraversGothicBT-Regular.woff2') format('woff2');
