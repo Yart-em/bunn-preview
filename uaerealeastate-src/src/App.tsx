@@ -910,6 +910,15 @@ function BelowFoldMount() {
 
   useEffect(() => {
     if (!loaded) return;
+    /* Re-measure Lenis's scroll limit as each section lands. Lenis
+     * stops wheel input at the limit it last measured, and its own
+     * resize observer is debounced (250 ms after the LAST change, so
+     * only once the last section is in): a visitor already scrolling
+     * fast lost the input in between. Only the dimensions, not
+     * lenis.resize(): that also resets the scroll target to the
+     * current position, cutting short a scroll that is still easing
+     * in (it did, once the last section was in). */
+    if (stage > 0) getLenis().dimensions.resize();
     if (stage < BELOW_FOLD_STAGES.length) {
       /* Wait for the next frame before asking for idle time: one
        * idle period can run several callbacks back to back, and
@@ -928,12 +937,9 @@ function BelowFoldMount() {
         cancelIdle();
       };
     }
-    /* All in. Lenis would re-measure on its own (debounced resize
-     * observer); do it once now so its scroll limit is right
-     * straight away. Then warm the contact popup's chunk, so the
-     * first CTA click doesn't wait on the network (a failed fetch
-     * is retried there, and again on the click). */
-    getLenis().resize();
+    /* All in. Warm the contact popup's chunk, so the first CTA click
+     * doesn't wait on the network (a failed fetch is retried there,
+     * and again on the click). */
     return whenIdle(() => {
       loadContactPopup().catch(() => {});
     }, BELOW_FOLD_STAGE_TIMEOUT_MS);
