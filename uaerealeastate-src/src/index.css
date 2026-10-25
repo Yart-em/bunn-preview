@@ -590,25 +590,35 @@ h1 {
    to refract — but it was so dominant it drowned out the globe
    visible through the glass. Toned down to a subtle hint so the
    Liquid Glass refraction primarily samples the globe (dots +
-   arcs + coins) behind the card. */
+   arcs + coins) behind the card.
+
+   The wash is a pre-rendered image, not live CSS. It used to be
+   these two gradients drawn through `filter: blur(36px)` on a
+   box inset -50% -30% around the card:
+     radial-gradient(55% 55% at 25% 30%,
+       rgba(255, 31, 143, 0.1) 0%, rgba(255, 31, 143, 0) 70%),
+     radial-gradient(55% 55% at 80% 65%,
+       rgba(122, 88, 255, 0.08) 0%, rgba(122, 88, 255, 0) 70%)
+   Safari's renderer holds up the first frames to blur a box that
+   size, so the page stuttered while the hero loaded. hero-glow.png
+   is exactly what Chromium painted for that recipe at the
+   720 × 188 desktop card (box 1152 × 376), padded with the
+   blur's bleed: 144 px left/right (20% of the card width) and
+   117.5 px top/bottom (62.5% of its height) — hence the inset.
+   Sized 100% × 100% it scales with the card, so it matches the
+   old blur to within 2/255 per channel at tablet and desktop
+   widths; on phones the bleed narrows with the card (within
+   3/255). To restyle it, render the recipe as a 1152 × 376 box
+   at (144, 117.5) on a transparent 1440 × 611 page and
+   screenshot that. index.html preloads it so the wash is there
+   on the card's first frame. */
 .hero-card::before {
   content: '';
   position: absolute;
-  inset: -50% -30%;
-  background:
-    radial-gradient(
-      55% 55% at 25% 30%,
-      rgba(255, 31, 143, 0.1) 0%,
-      rgba(255, 31, 143, 0) 70%
-    ),
-    radial-gradient(
-      55% 55% at 80% 65%,
-      rgba(122, 88, 255, 0.08) 0%,
-      rgba(122, 88, 255, 0) 70%
-    );
+  inset: -112.5% -50%;
+  background: url('/uaerealestate/hero-glow.png') no-repeat 0 0 / 100% 100%;
   z-index: -1;
   pointer-events: none;
-  filter: blur(36px);
 }
 
 .hero-card__inner {

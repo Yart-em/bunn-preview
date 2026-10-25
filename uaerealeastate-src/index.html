@@ -33,6 +33,11 @@
       href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap"
       rel="stylesheet"
     />
+    <!-- The hero card's colour wash (see .hero-card::before). It is a
+         CSS background, so without this the browser would only ask for
+         it once React has rendered the card, and the wash would pop in
+         a moment after the card. -->
+    <link rel="preload" href="/hero-glow.png" as="image" />
   </head>
   <body>
     <div id="root"></div>
