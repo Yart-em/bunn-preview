@@ -841,7 +841,11 @@ function HeroRotator() {
               FROM
             </motion.span>
           </motion.span>
-          {' '}
+          {/* No JSX space here: the chip's own margin is the whole
+              gap, so "FROM" sits as close to the chip as "TO" does.
+              (The suffix's leading space is dropped by the browser
+              at the start of its inline-block, so a space here made
+              the left gap a word wider than the right.) */}
           <motion.span
             layout
             className="rotator-name-chip"

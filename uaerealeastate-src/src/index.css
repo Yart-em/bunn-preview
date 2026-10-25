@@ -379,8 +379,12 @@ p {
   /* Horizontal breathing room between the chip and the prefix
      / suffix text. JSX whitespace inside the surrounding
      inline-block spans gets collapsed by the browser's text
-     normalization, so we add the spacing here via margin. */
-  margin: 0 0.25em;
+     normalization, so we add the spacing here via margin.
+     The left margin is 0.05em smaller so the VISIBLE gaps match:
+     "FROM" ends in an M whose glyph carries ~0.07em of empty
+     space on its right (less the line's −0.02em letter-spacing),
+     while the T of "TO" has none on its left. */
+  margin: 0 0.25em 0 0.2em;
   vertical-align: baseline;
 }
 
