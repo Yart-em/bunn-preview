@@ -8,7 +8,9 @@
  * REQUESTS an open; the popup registers its opener once it has
  * mounted and parked its panel off-screen, and a request that came
  * in before that is replayed then — so the very first open still
- * plays the normal slide-in animation.
+ * plays the normal slide-in animation. If the popup's chunk fails to
+ * load, the page reloads for it (lib/chunks) and the request carries
+ * over to the reloaded page.
  *
  * Tiny on purpose: it ships in the entry bundle.
  */
@@ -24,6 +26,31 @@ let pending = false;
 export function requestContactOpen(): void {
   if (opener) opener();
   else pending = true;
+}
+
+/** sessionStorage: a CTA click whose popup a reload interrupted. */
+const OPEN_AFTER_RELOAD_KEY = 'bunn:contact-open-after-reload';
+
+/** Have the next load of this page open the popup straight away: the
+ *  popup's chunk failed on a CTA click and the page is reloading for
+ *  it (lib/chunks), so the click isn't lost. */
+export function openContactAfterReload(): void {
+  try {
+    sessionStorage.setItem(OPEN_AFTER_RELOAD_KEY, '1');
+  } catch {
+    /* Then the visitor clicks again after the reload. */
+  }
+}
+
+/** True, once, on the load that openContactAfterReload asked for. */
+export function takeContactOpenAfterReload(): boolean {
+  try {
+    if (!sessionStorage.getItem(OPEN_AFTER_RELOAD_KEY)) return false;
+    sessionStorage.removeItem(OPEN_AFTER_RELOAD_KEY);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Called by the mounted popup. Replays a queued request; returns

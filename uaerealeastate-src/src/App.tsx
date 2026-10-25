@@ -14,7 +14,9 @@ import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
 // Lazy-loaded: pulls in Three.js + R3F + drei. Code-splitting it
 // keeps that ~600 KB out of the initial bundle so the page
 // paints/interacts fast; the globe streams in at its 2 s mount.
-const Globe = lazy(() => import('./components/Globe/Globe'));
+// If the chunk fails to load, the page reloads for it (lib/chunks).
+const loadGlobe = () => import('./components/Globe/Globe');
+const Globe = lazyOrNothing(loadGlobe, { reload: true });
 import GlassSurface from './components/GlassSurface/GlassSurface';
 import BorderGlow from './components/BorderGlow/BorderGlow';
 import GlareHover from './components/GlareHover/GlareHover';
@@ -25,15 +27,49 @@ import { getLenis } from './lib/lenis';
 import { whenIdle } from './lib/idle';
 // No three.js in here: it only starts the globe's dot-lattice worker.
 import { loadGlobeDots } from './components/Globe/globeData';
-import { CTA_SELECTOR, requestContactOpen } from './lib/contact';
+import {
+  CTA_SELECTOR,
+  openContactAfterReload,
+  requestContactOpen,
+  takeContactOpenAfterReload,
+} from './lib/contact';
+import {
+  afterPageLoad,
+  importAfresh,
+  isChunkReloadPage,
+  lazyOrNothing,
+  reloadForFailedChunk,
+} from './lib/chunks';
 import { BELOW_FOLD_STAGES } from './belowFoldStages';
 // Code-split: every section after the hero (BelowFold.tsx) and the
 // contact popup each live in their own chunk — see BelowFoldMount
 // and ContactPopupHost below for when they load and mount.
-const loadBelowFold = () => import('./BelowFold');
+// Each loader is shared by every caller, so there's only ever one
+// copy of the module. A failed fetch would fail import() for good
+// (lib/chunks), so it tries once more under fresh URLs; if that fails
+// too, the next call starts over.
+const loadBelowFold = memoRetry(
+  () => import('./BelowFold'),
+  () => importAfresh<typeof import('./BelowFold')>('belowFold'),
+);
 const BelowFold = lazy(loadBelowFold);
-const loadContactPopup = () =>
-  import('./components/ContactPopup/ContactPopup');
+const loadContactPopup = memoRetry(
+  () => import('./components/ContactPopup/ContactPopup'),
+  () =>
+    importAfresh<typeof import('./components/ContactPopup/ContactPopup')>(
+      'contactPopup',
+    ),
+);
+function memoRetry<T>(load: () => Promise<T>, retry: () => Promise<T>) {
+  let loading: Promise<T> | null = null;
+  return () =>
+    (loading ??= load()
+      .catch(retry)
+      .catch((err) => {
+        loading = null;
+        throw err;
+      }));
+}
 // The popup's CSS ships in the entry bundle for ContactPopupHost's
 // stand-in of the closed popup (see there).
 import './components/ContactPopup/ContactPopup.css';
@@ -277,8 +313,13 @@ function HeroScrollScene({
   const [globeReady, setGlobeReady] = useState(false);
   useEffect(() => {
     /* Warm the lazy three.js chunk immediately so it's parsed and
-     * ready by the time the 2 s mount delay elapses. */
-    import('./components/Globe/Globe');
+     * ready by the time the 2 s mount delay elapses. If it fails,
+     * reload now, while the entrance has barely begun, rather than
+     * when the lazy Globe asks for it at 2 s. On the reloaded page,
+     * leave the request to that 2 s mount (lib/chunks). */
+    if (!isChunkReloadPage()) {
+      loadGlobe().catch(() => reloadForFailedChunk());
+    }
     /* And have the dots worker build the globe's dot lattice in the
      * first idle period, so the data is waiting at mount and the
      * dots are in the globe's very first commit. */
@@ -819,6 +860,8 @@ function BelowFoldMount() {
   /* Chunk loaded yet, and how many sections are mounted so far. */
   const [loaded, setLoaded] = useState(false);
   const [stage, setStage] = useState(0);
+  /* The chunk failed to load and the page can't reload for it. */
+  const [failed, setFailed] = useState(false);
   const allIn = stage >= BELOW_FOLD_STAGES.length;
 
   useEffect(() => {
@@ -837,8 +880,20 @@ function BelowFoldMount() {
       started = true;
       stopWaiting();
       /* The first section mounts in the idle period after the
-       * chunk has been fetched and evaluated, not in the same task. */
-      loadBelowFold().then(() => setLoaded(true));
+       * chunk has been fetched and evaluated, not in the same task.
+       * If it can't be loaded even under fresh URLs (loadBelowFold),
+       * reload for it (lib/chunks) — or, when this load already is
+       * that reload, drop the placeholder, so the page ends at the
+       * hero rather than in two blank screens. */
+      const load = () =>
+        loadBelowFold().then(
+          () => setLoaded(true),
+          () => {
+            if (!reloadForFailedChunk()) setFailed(true);
+          },
+        );
+      if (isChunkReloadPage()) afterPageLoad(load);
+      else load();
     };
     SCROLL_INTENT_EVENTS.forEach((e) =>
       window.addEventListener(e, start, { passive: true }),
@@ -876,7 +931,8 @@ function BelowFoldMount() {
     /* All in. Lenis would re-measure on its own (debounced resize
      * observer); do it once now so its scroll limit is right
      * straight away. Then warm the contact popup's chunk, so the
-     * first CTA click doesn't wait on the network. */
+     * first CTA click doesn't wait on the network (a failed fetch
+     * is retried there, and again on the click). */
     getLenis().resize();
     return whenIdle(() => {
       loadContactPopup().catch(() => {});
@@ -893,7 +949,7 @@ function BelowFoldMount() {
       <Suspense fallback={null}>
         {stage > 0 && <BelowFold stage={stage} />}
       </Suspense>
-      {!allIn && (
+      {!allIn && !failed && (
         <div className="below-fold-placeholder" aria-hidden="true" />
       )}
     </>
@@ -910,7 +966,9 @@ function BelowFoldMount() {
  *  the request once the popup has mounted and parked itself
  *  off-screen, so the first open plays the normal slide-in) and
  *  mounts the popup if it isn't yet. BelowFoldMount warms the chunk
- *  in idle time, so a click normally finds it loaded. */
+ *  in idle time, so a click normally finds it loaded. If the chunk
+ *  can't be loaded, even under a fresh URL, the click reloads the
+ *  page and the reloaded page opens the popup (lib/chunks). */
 function ContactPopupHost() {
   /* The popup component once its chunk has loaded — held in state
    * rather than rendered through React.lazy: a lazy component's
@@ -919,21 +977,33 @@ function ContactPopupHost() {
    * land between the click and the slide-in. */
   const [Popup, setPopup] = useState<ComponentType | null>(null);
   useEffect(() => {
+    const openPopup = () => {
+      requestContactOpen();
+      loadContactPopup().then(
+        (m) => setPopup(() => m.default),
+        /* Not even under a fresh URL: a deploy has replaced the chunk,
+         * or gsap, which it imports, is what failed — and import()
+         * won't fetch that again. Reload, and open the popup on the
+         * new page. */
+        () => reloadForFailedChunk(openContactAfterReload),
+      );
+    };
     const onClick = (e: MouseEvent) => {
       const cta =
         e.target instanceof Element ? e.target.closest(CTA_SELECTOR) : null;
       /* The form's own submit button is a .cta-fab too. */
       if (!cta || cta.closest('.contact-popup')) return;
       e.preventDefault();
-      requestContactOpen();
-      /* A failed fetch leaves the page as it was; the next click
-       * retries. */
-      loadContactPopup().then(
-        (m) => setPopup(() => m.default),
-        () => {},
-      );
+      openPopup();
     };
     document.addEventListener('click', onClick);
+    /* This load is that reload: open the popup the click asked for,
+     * once the page has loaded and painted. (If WebKit still hands
+     * back the old error then, loadContactPopup's retry under a
+     * fresh URL gets past it — see isChunkReloadPage.) */
+    if (takeContactOpenAfterReload()) {
+      afterPageLoad(() => whenIdle(openPopup, BELOW_FOLD_STAGE_TIMEOUT_MS));
+    }
     return () => document.removeEventListener('click', onClick);
   }, []);
   /* Until the popup has loaded, render its closed state: the panel

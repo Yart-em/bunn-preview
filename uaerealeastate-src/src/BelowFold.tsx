@@ -16,7 +16,7 @@
  * all of them in a single commit cost one ~145 ms frame at 4× CPU
  * throttle — a visible hitch in the spinning globe.
  */
-import { Fragment, Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Fragment, Suspense, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import GlassSurface from './components/GlassSurface/GlassSurface';
 import BorderGlow from './components/BorderGlow/BorderGlow';
@@ -30,9 +30,14 @@ import CurvedLoop from './components/CurvedLoop/CurvedLoop';
 import SlideCarousel from './components/SlideCarousel/SlideCarousel';
 import type { SlideData } from './components/SlideCarousel/SlideCarousel';
 import { useCardNotch } from './hooks/useCardNotch';
-const BrokersCoin = lazy(() => import('./components/BrokersCoin/BrokersCoin'));
+// Decoration: if its chunk fails, the section goes without the coin.
+const BrokersCoin = lazyOrNothing(
+  () => import('./components/BrokersCoin/BrokersCoin'),
+  { reload: false },
+);
 import CityScape from './components/CityScape/CityScape';
 import { BELOW_FOLD_STAGES, type BelowFoldStage } from './belowFoldStages';
+import { lazyOrNothing } from './lib/chunks';
 
 /* ── FAQ items ──────────────────────────────────────────── */
 const FAQ_ITEMS: { q: string; a: string }[] = [
