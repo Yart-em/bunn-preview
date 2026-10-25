@@ -4,6 +4,9 @@
  * sweep in from the right, the white panel follows, then the form
  * fields stagger up. Opened by clicking ANY CTA button on the
  * page (every `.cta-fab`), closed via the X, the backdrop, or Esc.
+ * Code-split: App (ContactPopupHost) loads this chunk in idle
+ * time, mounts it on the first CTA click and forwards clicks via
+ * lib/contact.
  */
 import {
   useCallback,
@@ -15,6 +18,7 @@ import {
 import { gsap } from 'gsap';
 import BorderGlow from '../BorderGlow/BorderGlow';
 import GlareHover from '../GlareHover/GlareHover';
+import { registerContactOpener } from '../../lib/contact';
 import './ContactPopup.css';
 
 /* Staggered underlay layers — brand grey then pink (#FF9BB4, the
@@ -176,20 +180,15 @@ export default function ContactPopup() {
     playClose();
   }, [playClose]);
 
-  /* Open on ANY CTA button click (every `.cta-fab` on the page),
-   * except the form's own submit button inside the panel. */
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      const el = e.target as HTMLElement | null;
-      const cta = el?.closest('a.cta-fab, button.cta-fab');
-      if (!cta) return;
-      if (panelRef.current && panelRef.current.contains(cta)) return; // skip in-panel button
-      e.preventDefault();
-      openPopup();
-    };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, [openPopup]);
+  /* Open on ANY CTA button click (every `.cta-fab` on the page,
+   * except the form's own submit button inside the panel). The
+   * click listener lives in App (ContactPopupHost) so it works
+   * before this lazy chunk has loaded; it reaches us through
+   * lib/contact, which also replays a click that came in before
+   * we mounted. Registered in a passive effect, i.e. after the
+   * layout effect above has parked the panel off-screen, so a
+   * replayed open slides in from the right as usual. */
+  useEffect(() => registerContactOpener(openPopup), [openPopup]);
 
   /* Esc closes. */
   useEffect(() => {

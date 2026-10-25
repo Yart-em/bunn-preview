@@ -1138,6 +1138,18 @@ h1 {
   stroke-dashoffset: 0;
 }
 
+/* Stand-in after the hero until every below-fold section has
+ * mounted (BelowFoldMount in App.tsx), so the document never ends
+ * at the hero's bottom edge. Two viewports: the hero's scroll
+ * choreography runs ~1.2 viewports past that edge (the statement
+ * headings leave at 290vh + 1085px, see .hero), and Lenis clamps
+ * scrolling to the document height. dvh for the same reason as
+ * .hero. */
+.below-fold-placeholder {
+  height: 200vh;
+  height: 200dvh;
+}
+
 /* ── How-it-works card section ──────────────────────────────
  * overflow: hidden clips the ScrollStack cards to the
  * section's box. Cards that are translated above the
