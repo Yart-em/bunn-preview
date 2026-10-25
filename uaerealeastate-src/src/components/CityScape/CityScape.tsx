@@ -8,10 +8,15 @@
  *     dot's TARGET position (= where the dot would sit in
  *     the static illustration).
  *
- * When the section first scrolls into view (IntersectionObserver
- * threshold ≥ 30 %), the animation kicks off. As each dot eases
- * from start → target, the source PNG cross-fades to 0. End
- * state: only the dot illustration remains.
+ * When the section first scrolls into view (≥ 30 % visible), the
+ * animation kicks off. As each dot eases from start → target, the
+ * source PNG cross-fades to 0. End state: only the dot
+ * illustration remains.
+ *
+ * The section sits at the very bottom of a long page, so its
+ * ~900 KB source PNG is only fetched + decoded (and the dots only
+ * built) once the section nears the viewport — none of that work
+ * competes with the hero's first seconds.
  *
  * Mirrors the hero-globe DotSphere gather: per-dot delay,
  * easeOutCubic, source image fading out as dots arrive.
@@ -25,6 +30,11 @@ import './CityScape.css';
 
 /* ── Tunables ─────────────────────────────────────────────── */
 const SRC_PATH = '/uaerealestate/photos/dubai-cityscape-v3.png';
+/* Start fetching the source PNG once the section's top is within
+ * this many viewport heights of the top of the screen (≈ 1.5
+ * screens below the fold) — early enough that it is decoded and
+ * the dots are built well before the 30 %-visible trigger. */
+const LOAD_AHEAD_VIEWPORTS = 2.5;
 
 /* Sampling grid in DISPLAY pixels (= dot spacing). Tighter
    spacing = denser dots — at 3 px the field has ~2 × the
@@ -54,20 +64,52 @@ type Dot = {
   delay: number;                // when this dot begins easing
 };
 
+/* Paint the dot field as it stands `elapsed` seconds into the
+ * gather (≥ GATHER_END = the finished illustration). */
+const paintDots = (
+  ctx: CanvasRenderingContext2D,
+  dots: Dot[],
+  r: number,
+  elapsed: number,
+) => {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillStyle = DOT_COLOR;
+  for (let i = 0; i < dots.length; i++) {
+    const d = dots[i];
+    const local = Math.max(
+      0,
+      Math.min(1, (elapsed - d.delay) / GATHER_DURATION),
+    );
+    if (local <= 0) continue;
+    const eased = easeOutCubic(local);
+    const x = d.sx + (d.tx - d.sx) * eased;
+    const y = d.sy + (d.ty - d.sy) * eased;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+};
+
 export default function CityScape() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const imgRef = useRef<HTMLImageElement | null>(null);
   const dotsRef = useRef<Dot[]>([]);
   const rafRef = useRef<number | null>(null);
   const animStartRef = useRef<number | null>(null);
+  /* Set once the gather has played to the end — from then on a
+   * resize repaints the finished illustration directly. */
+  const gatherDoneRef = useRef(false);
   /* Dot radius in CANVAS px, set by buildDots. On the wide desktop
    * card it stays the tuned constant; on the tall mobile card it
    * scales down with the canvas so the (finer) dots don't go chunky. */
   const dotRadiusRef = useRef<number>(DOT_RADIUS_DISPLAY);
 
+  /* hasStarted — the section crossed the 30 %-visible trigger (drives
+   * the heading + CTA entrance). dotsReady — the source PNG is
+   * decoded and the dot field built. The gather needs both. */
   const [hasStarted, setHasStarted] = useState(false);
+  const [dotsReady, setDotsReady] = useState(false);
 
   /* Build the target dot list from the source image, then
    * pair each target with a scattered start position. */
@@ -153,12 +195,24 @@ export default function CityScape() {
     return dots;
   };
 
-  /* Size canvas, load image, build dots, hook resize + IO. */
+  /* Size canvas, load image near the viewport, build dots, hook
+   * resize + the scroll trigger. */
   useEffect(() => {
     const card = cardRef.current;
     const canvas = canvasRef.current;
     if (!card || !canvas) return;
 
+    /* The decoded source image (null until the section nears the
+     * viewport) and the canvas size + dpr the dots were last built
+     * for. */
+    let img: HTMLImageElement | null = null;
+    let builtFor = '';
+    let disposed = false;
+
+    /* Runs on every ResizeObserver callback and once more when the
+     * image is ready. Idempotent per (canvas size, dpr): the PNG is
+     * sampled once per size, never twice for the same one (the
+     * first resize callback and img.onload used to both build). */
     const setup = () => {
       const dpr = window.devicePixelRatio || 1;
       const displayW = card.clientWidth;
@@ -167,46 +221,80 @@ export default function CityScape() {
 
       const canvasW = Math.round(displayW * dpr);
       const canvasH = Math.round(displayH * dpr);
-      canvas.width = canvasW;
-      canvas.height = canvasH;
+      /* Assigning canvas.width / height clears the bitmap even when
+       * the value is unchanged, so only touch them on a real size
+       * change. */
+      if (canvas.width !== canvasW || canvas.height !== canvasH) {
+        canvas.width = canvasW;
+        canvas.height = canvasH;
+      }
       canvas.style.width = `${displayW}px`;
       canvas.style.height = `${displayH}px`;
 
-      const img = imgRef.current;
-      if (img && img.complete && img.naturalWidth > 0) {
-        dotsRef.current = buildDots(img, canvasW, canvasH, dpr);
-      }
+      if (!img) return;
+      const key = `${canvasW}x${canvasH}@${dpr}`;
+      if (key === builtFor) return;
+      builtFor = key;
+      dotsRef.current = buildDots(img, canvasW, canvasH, dpr);
+      setDotsReady(true);
 
-      /* After the gather + reveal completes the final state is
-       * "photo visible, canvas blank" — nothing to repaint on
-       * resize, just keep the dot canvas cleared so the image
-       * shows through unobstructed. */
+      /* A resize after the gather has finished (the resize above
+       * wiped the canvas, and the rAF loop has stopped) — repaint
+       * the finished illustration at the new size. Mid-gather, the
+       * running loop picks up the rebuilt dots on its next frame. */
+      if (gatherDoneRef.current) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          paintDots(ctx, dotsRef.current, dotRadiusRef.current, GATHER_END);
+        }
+      }
     };
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = SRC_PATH;
-    imgRef.current = img;
-    img.onload = setup;
-
-    setup();
+    /* Fetch the PNG and decode() it before buildDots draws it. In
+     * Safari/WebKit that moves the decode off the main thread (the
+     * build drops from ~22 to ~10 ms); Chromium's 2D canvas still
+     * decodes on its first read, so there it's simply neutral.
+     * Runs once, from the first scroll check that finds the
+     * section within LOAD_AHEAD_VIEWPORTS. */
+    let loadStarted = false;
+    const loadImage = () => {
+      if (loadStarted) return;
+      loadStarted = true;
+      const el = new Image();
+      el.crossOrigin = 'anonymous';
+      el.src = SRC_PATH;
+      const ready = () => {
+        if (disposed) return;
+        img = el;
+        setup();
+      };
+      /* decode() rejects for a broken file, but also when an engine
+       * declines the up-front decode; if the image itself loaded,
+       * build from it anyway (drawImage then decodes it in-line). */
+      el.decode().then(ready, () => {
+        if (el.complete && el.naturalWidth > 0) ready();
+      });
+    };
 
     const ro = new ResizeObserver(setup);
     ro.observe(card);
 
-    /* Trigger: fire when the section is at least 25 % visible
+    /* Trigger: fire when the section is at least 30 % visible
      * in the viewport. We use a scroll listener + bounding-rect
      * math instead of IntersectionObserver because IO is
      * unreliable in some automation / preview contexts, and a
-     * scroll handler is portable + still cheap. The check also
-     * runs once immediately on mount so SSR / refresh-mid-page
-     * scenarios trigger correctly. */
+     * scroll handler is portable + still cheap. The same check
+     * starts the image load once the section is within
+     * LOAD_AHEAD_VIEWPORTS (always true by the time it's 30 %
+     * visible). It also runs once immediately on mount so
+     * SSR / refresh-mid-page scenarios load + trigger correctly. */
     const section = sectionRef.current;
     let triggered = false;
     const checkVisible = () => {
       if (triggered || !section) return;
       const r = section.getBoundingClientRect();
       const vh = window.innerHeight || document.documentElement.clientHeight;
+      if (r.top < vh * LOAD_AHEAD_VIEWPORTS) loadImage();
       const visible = Math.max(0, Math.min(vh, r.bottom) - Math.max(0, r.top));
       const ratio = r.height > 0 ? visible / r.height : 0;
       if (ratio >= 0.3) {
@@ -219,14 +307,20 @@ export default function CityScape() {
     window.addEventListener('scroll', checkVisible, { passive: true });
 
     return () => {
+      disposed = true;
       ro.disconnect();
       window.removeEventListener('scroll', checkVisible);
     };
   }, []);
 
-  /* Animation loop — only runs once after hasStarted flips. */
+  /* Animation loop — runs once, after the trigger fires AND the dots
+   * are built. Normally the dots are ready long before the trigger;
+   * after a fast jump to the bottom the trigger can win the race, and
+   * then the gather waits for the dots (starting its clock on the
+   * first frame that has them) instead of playing over an empty
+   * field. */
   useEffect(() => {
-    if (!hasStarted) return;
+    if (!hasStarted || !dotsReady) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -238,26 +332,7 @@ export default function CityScape() {
       if (animStartRef.current === null) animStartRef.current = ts;
       const elapsed = (ts - animStartRef.current) / 1000;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = DOT_COLOR;
-
-      const r = dotRadiusRef.current;
-      const dots = dotsRef.current;
-
-      for (let i = 0; i < dots.length; i++) {
-        const d = dots[i];
-        const local = Math.max(
-          0,
-          Math.min(1, (elapsed - d.delay) / GATHER_DURATION),
-        );
-        if (local <= 0) continue;
-        const eased = easeOutCubic(local);
-        const x = d.sx + (d.tx - d.sx) * eased;
-        const y = d.sy + (d.ty - d.sy) * eased;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      paintDots(ctx, dotsRef.current, dotRadiusRef.current, elapsed);
 
       if (elapsed < TOTAL_DURATION) {
         rafRef.current = requestAnimationFrame(tick);
@@ -265,6 +340,7 @@ export default function CityScape() {
         /* Gather complete — the dots stay drawn as the final
          * illustration (no photo reveal). */
         rafRef.current = null;
+        gatherDoneRef.current = true;
       }
     };
 
@@ -273,7 +349,7 @@ export default function CityScape() {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [hasStarted]);
+  }, [hasStarted, dotsReady]);
 
   return (
     <section className="cityscape-section" ref={sectionRef}>
