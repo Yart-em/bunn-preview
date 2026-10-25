@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import type { Arc } from './Arcs';
@@ -150,17 +150,19 @@ export default function TravelingDots({
    *  and fade out as progress climbs. */
   dissolveProgress?: number;
 }) {
-  const [textures, setTextures] = useState<{
-    faces: THREE.Texture[];
-    side: THREE.Texture;
-  } | null>(null);
-
-  useEffect(() => {
-    setTextures({
+  /* Built synchronously during the first render (not in an effect +
+   * setState, which added the coins one commit later) so the coin
+   * meshes exist in the Globe's very first commit — that's the commit
+   * ShaderWarmup compiles, so the coins' textured MeshBasicMaterial
+   * program is warmed with everything else instead of compiling
+   * synchronously on the frame the coins first appear. */
+  const textures = useMemo(
+    () => ({
       faces: CURRENCIES.map(makeFaceTexture),
       side: makeSideTexture(),
-    });
-  }, []);
+    }),
+    [],
+  );
 
   const travelers = useMemo<Traveler[]>(() => {
     const out: Traveler[] = [];
@@ -188,7 +190,6 @@ export default function TravelingDots({
   /** Per-coin materials (one set of three per traveler), each using
    *  the face texture for its assigned currency. */
   const coinMaterials = useMemo(() => {
-    if (!textures) return [];
     return travelers.map((t) => {
       const face = textures.faces[t.currencyIndex];
       // depthWrite: false avoids the classic transparent-blocks-
@@ -505,7 +506,7 @@ export default function TravelingDots({
     });
   });
 
-  if (travelers.length === 0 || !textures) return null;
+  if (travelers.length === 0) return null;
 
   return (
     <>

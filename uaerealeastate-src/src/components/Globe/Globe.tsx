@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import DotSphere from './DotSphere';
@@ -11,6 +11,77 @@ import { useGlobeDots } from './dots';
 import { latLonToVec3 } from './geo';
 import { DUBAI } from './constants';
 
+/** Upper bound on how long the globe's first frame waits for
+ *  ShaderWarmup. A first-visit (cold shader cache) warm-up measured
+ *  180–235 ms on an M4 Pro in both Chromium and WebKit, desktop and
+ *  iPhone-sized. That time is spent in the browser's GPU process /
+ *  driver shader compiler, so it grows on slower devices: 1.5 s
+ *  leaves ~6× headroom for them while still bounding how late the
+ *  globe can start if the warm-up never settles. Hitting the cap is
+ *  never worse than having no warm-up at all (see below). */
+const SHADER_WARMUP_TIMEOUT_MS = 1500;
+
+/**
+ * Compiles every material in the scene BEFORE the globe's first
+ * frame, via renderer.compileAsync: with KHR_parallel_shader_compile
+ * the browser links the programs off the main thread and three polls
+ * their COMPLETION_STATUS instead of blocking on it. Without this the
+ * first draw compiled + linked every program synchronously — on a
+ * first visit (cold GPU shader cache) that froze the page for
+ * 200–300 ms right as the dots began to gather.
+ *
+ * Rendered as the LAST child of the scene group: passive effects run
+ * after every sibling's objects are attached, so compileAsync sees
+ * the whole scene (dots, occluder, arcs, pedestal, coins).
+ */
+function ShaderWarmup({ onReady }: { onReady: () => void }) {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+
+  useEffect(() => {
+    /* Without KHR_parallel_shader_compile there is no non-blocking
+     * way to wait: compileAsync would only log a console warning and
+     * hand over to a first draw that compiles synchronously anyway.
+     * Render straight away there, exactly as before. */
+    if (!gl.extensions.has('KHR_parallel_shader_compile')) {
+      onReady();
+      return;
+    }
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(safety);
+      onReady();
+    };
+    /* compileAsync's promise has no timeout: it polls until every
+     * program reports complete, so a driver that never reports would
+     * keep the globe hidden for good. Past the cap the globe renders
+     * anyway — any program still compiling is then finished
+     * synchronously by the first draw, exactly as it was before this
+     * warm-up existed. */
+    const safety = setTimeout(finish, SHADER_WARMUP_TIMEOUT_MS);
+    /* Its own task, so the main-thread half of compile() (shader
+     * source assembly + the GL calls) doesn't lengthen the task that
+     * just built and committed the dot lattice. */
+    const kick = setTimeout(() => {
+      try {
+        gl.compileAsync(scene, camera).then(finish, finish);
+      } catch {
+        finish();
+      }
+    }, 0);
+    return () => {
+      settled = true;
+      clearTimeout(safety);
+      clearTimeout(kick);
+    };
+  }, [gl, scene, camera, onReady]);
+
+  return null;
+}
+
 function Scene({
   sphereYOffset,
   sphereScale,
@@ -19,6 +90,7 @@ function Scene({
   dissolveProgress,
   preLockProgress,
   dotSize,
+  onShadersReady,
 }: {
   sphereYOffset: number;
   sphereScale: number;
@@ -27,6 +99,7 @@ function Scene({
   dissolveProgress: number;
   preLockProgress: number;
   dotSize: number;
+  onShadersReady: () => void;
 }) {
   const dots = useGlobeDots();
   const arcs = useArcs(dots?.landVectors ?? null);
@@ -136,6 +209,8 @@ function Scene({
         <DubaiMarker landVectors={dots.landVectors} />
       )}
       <TravelingDots arcs={arcs} dissolveProgress={dissolveProgress} />
+      {/* Keep LAST — see ShaderWarmup. */}
+      <ShaderWarmup onReady={onShadersReady} />
     </group>
   );
 }
@@ -175,6 +250,16 @@ export default function Globe({
    *  re-rendering an invisible scene. */
   frameloop?: 'always' | 'demand' | 'never';
 }) {
+  /* The render loop is held at 'never' until ShaderWarmup has
+   * compiled the scene (the canvas is still empty then: Scene renders
+   * nothing until the land mask has loaded). The entry choreography
+   * — dot gather, then arcs, pedestal and coins — is clocked from
+   * each component's FIRST useFrame, and R3F restarts its clock when
+   * the loop leaves 'never', so the sequence keeps its exact timing
+   * and simply begins on the first frame that is actually drawn. */
+  const [shadersReady, setShadersReady] = useState(false);
+  const onShadersReady = useCallback(() => setShadersReady(true), []);
+
   useEffect(() => {
     const tick = () => window.dispatchEvent(new Event('resize'));
     const a = requestAnimationFrame(tick);
@@ -192,7 +277,7 @@ export default function Globe({
        * retina resolution costs ~30 % more GPU raster work for a
        * difference that isn't visible on a dot cloud. */
       dpr={[1, 1.75]}
-      frameloop={frameloop}
+      frameloop={shadersReady ? frameloop : 'never'}
       /* preserveDrawingBuffer forces the browser to COPY (not swap)
        * the full canvas every frame — nothing here reads the buffer
        * back, so keep the cheap swap path. */
@@ -200,6 +285,13 @@ export default function Globe({
         antialias: true,
         alpha: true,
         powerPreference: 'high-performance',
+      }}
+      onCreated={({ gl }) => {
+        /* With checkShaderErrors on, three reads LINK_STATUS and the
+         * program + both shader info logs the first time each program
+         * is used — synchronous round-trips to the GPU process whose
+         * only product is console diagnostics. Dev builds keep them. */
+        gl.debug.checkShaderErrors = import.meta.env.DEV;
       }}
       style={{ width: '100%', height: '100%', background: 'transparent' }}
     >
@@ -211,6 +303,7 @@ export default function Globe({
         dissolveProgress={dissolveProgress}
         preLockProgress={preLockProgress}
         dotSize={dotSize}
+        onShadersReady={onShadersReady}
       />
       <OrbitControls
         /* Auto-rotation is driven manually in Scene's useFrame
