@@ -1816,9 +1816,13 @@ function App() {
       <section className="brokers-section">
         {/* Full-width curved marquee — spans the entire section behind
             the card. Shadow layer uses semi-transparent bg so this text
-            bleeds through, giving the glass something to blur. */}
+            bleeds through, giving the glass something to blur.
+            The " • " separator is drawn by CurvedLoop at ●'s size from
+            Engravers Gothic's own glyph — don't swap in '●'
+            or other symbols the font lacks (■ ◆ ★ …): each one forces
+            a slow system-font fallback when this section lays out. */}
         <CurvedLoop
-          marqueeText="COMMISSION COMES ON TIME BECAUSE THE DEAL IS CLOSED ON TIME ● "
+          marqueeText="COMMISSION COMES ON TIME BECAUSE THE DEAL IS CLOSED ON TIME • "
           speed={2}
           curveAmount={350}
           direction="left"

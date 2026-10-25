@@ -1,5 +1,57 @@
-import { useRef, useEffect, useState, useMemo, useId } from 'react';
+import { useRef, useEffect, useState, useMemo, useId, type ReactNode } from 'react';
 import './CurvedLoop.css';
+
+/* Separator dot — " • " in marqueeText renders as a big round dot
+ * (the size the old '●' separator had).
+ *
+ * The marquee used to separate repeats with '●' (U+25CF). That glyph
+ * isn't in Engravers Gothic (and this stack has no Satoshi), so the
+ * browser had to search the system fonts for it — a slow fallback
+ * lookup + shaping pass (~55–65 ms of layout at cpu×4 the first time
+ * the brokers section is laid out) for a dot drawn from a different
+ * typeface. Engravers Gothic's own '•' (U+2022) is used instead,
+ * drawn to the exact geometry of the ● it replaces (Helvetica's,
+ * which is what Mac browsers fell back to):
+ *   - • ink is 0.305em wide, centred 0.357em above the baseline;
+ *     ● was 0.430em wide, centred 0.284em up → draw • at 1.409em and
+ *     drop it 0.2186em (dy, undone on the next glyph so the rest of
+ *     the line stays on the path);
+ *   - the space on either side is drawn at 0.676em, so the gaps to
+ *     the dot's ink and the length of one repeat (= the loop period)
+ *     match ● exactly.
+ * Only font-size and dy are used: getComputedTextLength (which sets
+ * the loop period below) counts font-size in every engine, but leaves
+ * out a tspan's dx (Chromium and WebKit) and letter-spacing (WebKit).
+ * The measuring <text> renders the same tspans, so its length stays
+ * exact. A '•' without whitespace on both sides is left as a plain
+ * glyph. */
+const SEPARATOR_RE = /(\s)•(\s)/g;
+const DOT_SCALE = 1.409;
+const DOT_DROP = 0.2186; // in the marquee's em
+const DOT_GAP_SCALE = 0.676;
+/* dy lengths resolve against each tspan's OWN font-size, so convert
+ * the drop from the marquee's em into the dot's / the gap's em. */
+const DOT_DY = `${(DOT_DROP / DOT_SCALE).toFixed(4)}em`;
+const GAP_DY = `${(-DOT_DROP / DOT_GAP_SCALE).toFixed(4)}em`;
+
+/* One copy of the marquee text, with each " • " separator drawn as
+ * the enlarged dot (see above). `copy` keeps keys unique when the
+ * text is repeated along the path. */
+function renderMarquee(text: string, copy: number): ReactNode[] {
+  /* split() with the two capture groups yields
+   * [text, gapBefore, gapAfter, text, gapBefore, gapAfter, …, text]. */
+  const parts = text.split(SEPARATOR_RE);
+  const out: ReactNode[] = [parts[0]];
+  for (let i = 1; i < parts.length; i += 3) {
+    out.push(
+      <tspan key={`${copy}-${i}a`} fontSize={`${DOT_GAP_SCALE}em`}>{parts[i]}</tspan>,
+      <tspan key={`${copy}-${i}b`} fontSize={`${DOT_SCALE}em`} dy={DOT_DY}>•</tspan>,
+      <tspan key={`${copy}-${i}c`} fontSize={`${DOT_GAP_SCALE}em`} dy={GAP_DY}>{parts[i + 1]}</tspan>,
+      parts[i + 2],
+    );
+  }
+  return out;
+}
 
 interface CurvedLoopProps {
   marqueeText?: string;
@@ -43,11 +95,8 @@ const CurvedLoop = ({
   const velRef = useRef(0);
 
   const textLength = spacing;
-  const totalText = textLength
-    ? Array(Math.ceil(1800 / textLength) + 2)
-        .fill(text)
-        .join('')
-    : text;
+  const copies = textLength ? Math.ceil(1800 / textLength) + 2 : 1;
+  const totalText = Array.from({ length: copies }, (_, c) => renderMarquee(text, c));
   const ready = spacing > 0;
 
   useEffect(() => {
@@ -166,7 +215,7 @@ const CurvedLoop = ({
     >
       <svg className="curved-loop-svg" viewBox="0 0 1440 120">
         <text ref={measureRef} xmlSpace="preserve" style={{ visibility: 'hidden', opacity: 0, pointerEvents: 'none' }}>
-          {text}
+          {renderMarquee(text, 0)}
         </text>
         <defs>
           <path ref={pathRef} id={pathId} d={pathD} fill="none" stroke="transparent" />
