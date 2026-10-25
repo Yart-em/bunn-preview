@@ -18,8 +18,7 @@ const Globe = lazy(() => import('./components/Globe/Globe'));
 import GlassSurface from './components/GlassSurface/GlassSurface';
 import BorderGlow from './components/BorderGlow/BorderGlow';
 import GlareHover from './components/GlareHover/GlareHover';
-import BlurText from './components/BlurText/BlurText';
-import SplitText from './components/SplitText/SplitText';
+import { BlurInWords, RiseInChars } from './components/HeroEntrance/HeroEntrance';
 import { StaggerText } from './components/StaggerText/StaggerText';
 import { useCardNotch } from './hooks/useCardNotch';
 import { getLenis } from './lib/lenis';
@@ -90,25 +89,15 @@ const DEFAULT_LOCK_TOP_PX = 230;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
-/* ── BlurText-style entrance animation primitives ───────────
- * Match the keyframes the BlurText component uses for the H1
- * lines. Each rotator word + the chip + the card content uses
- * these so the page-wide entrance reads as ONE continuous
- * per-word reveal. */
-const BLUR_INITIAL = { filter: 'blur(10px)', opacity: 0, y: -50 };
-const BLUR_ANIMATE = {
-  filter: ['blur(10px)', 'blur(5px)', 'blur(0px)'],
-  opacity: [0, 0.5, 1],
-  y: [-50, 5, 0],
-};
-const BLUR_TIMES = [0, 0.5, 1];
-/* Each blur transition's TOTAL duration. Two transition steps
- * × stepDuration matches BlurText's internal math. */
-const BLUR_STEP = 0.45;
-const BLUR_TOTAL = BLUR_STEP * 2;
-
-/* Sequenced timing.
- *   • H1 lines 1 + 2 (BlurText)            ≈ 0 → 1.95 s
+/* ── Entrance ────────────────────────────────────────────────
+ * The H1 lines, each rotator word and the chip all enter with the
+ * same per-word blur-in, so the page-wide entrance reads as ONE
+ * continuous reveal (the eyebrow above rises in per character).
+ * All of it is CSS @keyframes (index.css, "Hero entrance"), played
+ * on the compositor; only the delays are set here.
+ *
+ * Sequenced timing.
+ *   • H1 lines 1 + 2 (BlurInWords)         ≈ 0 → 1.95 s
  *   • Globe canvas mounts at               2.0 s — immediately
  *     after last heading line; DotSphere gather runs ~1.9 s,
  *     dots settle ~3.9 s
@@ -123,10 +112,9 @@ const GLOBE_MOUNT_DELAY_MS = 2000;
  * `.hero-card .glass-surface { animation-delay }` — kept in
  * sync at 2 s (same time as globe mount). */
 
-const blurTransition = (delaySec: number) => ({
-  duration: BLUR_TOTAL,
-  times: BLUR_TIMES,
-  delay: delaySec,
+/** Blur-in delay of the rotator's `i`-th word (the chip is word 4). */
+const rotatorWordDelay = (i: number) => ({
+  animationDelay: `${Math.round((ROTATOR_START + i * ROTATOR_WORD_DELAY) * 1000)}ms`,
 });
 
 
@@ -649,16 +637,12 @@ function HeroRotator() {
         >
           {['ENABLE', 'YOUR', 'CLIENT'].map((word, i) => (
             <Fragment key={word}>
-              <motion.span
-                initial={BLUR_INITIAL}
-                animate={BLUR_ANIMATE}
-                transition={blurTransition(
-                  ROTATOR_START + i * ROTATOR_WORD_DELAY,
-                )}
-                style={{ display: 'inline-block' }}
+              <span
+                className="blur-in blur-in--ease-out"
+                style={rotatorWordDelay(i)}
               >
                 {word}
-              </motion.span>
+              </span>
               {' '}
             </Fragment>
           ))}
@@ -677,90 +661,91 @@ function HeroRotator() {
                 : LAYOUT_INSTANT_TRANSITION
             }
           >
-            <motion.span
-              initial={BLUR_INITIAL}
-              animate={BLUR_ANIMATE}
-              transition={blurTransition(
-                ROTATOR_START + 3 * ROTATOR_WORD_DELAY,
-              )}
-              style={{ display: 'inline-block' }}
+            <span
+              className="blur-in blur-in--ease-out"
+              style={rotatorWordDelay(3)}
             >
               FROM
-            </motion.span>
+            </span>
           </motion.span>
           {/* No JSX space here: the chip's own margin is the whole
               gap, so "FROM" sits as close to the chip as "TO" does.
               (The suffix's leading space is dropped by the browser
               at the start of its inline-block, so a space here made
               the left gap a word wider than the right.) */}
-          <motion.span
-            layout
-            className="rotator-name-chip"
-            initial={BLUR_INITIAL}
-            animate={BLUR_ANIMATE}
-            transition={{
-              ...LAYOUT_BACKOUT_TRANSITION,
-              ...blurTransition(
-                ROTATOR_START + 4 * ROTATOR_WORD_DELAY,
-              ),
-            }}
+          {/* The chip's blur-in runs on this wrapper, not on the chip:
+              the chip resizes on every city swap through motion's
+              layout animation, which drives the chip's inline
+              transform — and a CSS animation of that property
+              outranks inline styles (with fill `both`, for good).
+              An inline-block around the inline-flex chip takes the
+              chip's baseline, so the line lays out as before. */}
+          <span
+            className="blur-in blur-in--ease-out"
+            style={rotatorWordDelay(4)}
           >
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={countryIdx}
-                className="rotator-content"
-                layout
-                aria-hidden="true"
-              >
-                {/* Per-character RotatingText animation: every
-                    glyph slides y: 100% → 0 → -120% with a spring
-                    + stagger keyed off the LAST character. */}
-                <span className="rotator-name">
-                  {(() => {
-                    const cityName =
-                      COUNTRIES[countryIdx].name.toUpperCase();
-                    const chars = Array.from(cityName);
-                    return chars.map((char, i) => (
-                      <motion.span
-                        key={i}
-                        className="rotator-name-char"
-                        initial={{ y: '100%' }}
-                        animate={{ y: 0 }}
-                        exit={{ y: '-120%' }}
-                        transition={{
-                          ...ROTATOR_SPRING,
-                          delay: (chars.length - 1 - i) * ROTATOR_STAGGER,
-                        }}
-                      >
-                        {char === ' ' ? ' ' : char}
-                      </motion.span>
-                    ));
-                  })()}
-                </span>
-                {COUNTRIES[countryIdx].photo && (
-                  <motion.span
-                    className="rotator-photo-frame"
-                    aria-hidden="true"
-                    initial={{ y: '100%', opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: '-120%', opacity: 0 }}
-                    transition={{
-                      ...ROTATOR_SPRING,
-                      delay:
-                        COUNTRIES[countryIdx].name.length *
-                        ROTATOR_STAGGER,
-                    }}
-                  >
-                    <img
-                      className="rotator-photo"
-                      src={COUNTRIES[countryIdx].photo as string}
-                      alt=""
-                    />
-                  </motion.span>
-                )}
-              </motion.span>
-            </AnimatePresence>
-          </motion.span>
+            <motion.span
+              layout
+              className="rotator-name-chip"
+              transition={LAYOUT_BACKOUT_TRANSITION}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={countryIdx}
+                  className="rotator-content"
+                  layout
+                  aria-hidden="true"
+                >
+                  {/* Per-character RotatingText animation: every
+                      glyph slides y: 100% → 0 → -120% with a spring
+                      + stagger keyed off the LAST character. */}
+                  <span className="rotator-name">
+                    {(() => {
+                      const cityName =
+                        COUNTRIES[countryIdx].name.toUpperCase();
+                      const chars = Array.from(cityName);
+                      return chars.map((char, i) => (
+                        <motion.span
+                          key={i}
+                          className="rotator-name-char"
+                          initial={{ y: '100%' }}
+                          animate={{ y: 0 }}
+                          exit={{ y: '-120%' }}
+                          transition={{
+                            ...ROTATOR_SPRING,
+                            delay: (chars.length - 1 - i) * ROTATOR_STAGGER,
+                          }}
+                        >
+                          {char === ' ' ? ' ' : char}
+                        </motion.span>
+                      ));
+                    })()}
+                  </span>
+                  {COUNTRIES[countryIdx].photo && (
+                    <motion.span
+                      className="rotator-photo-frame"
+                      aria-hidden="true"
+                      initial={{ y: '100%', opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: '-120%', opacity: 0 }}
+                      transition={{
+                        ...ROTATOR_SPRING,
+                        delay:
+                          COUNTRIES[countryIdx].name.length *
+                          ROTATOR_STAGGER,
+                      }}
+                    >
+                      <img
+                        className="rotator-photo"
+                        src={COUNTRIES[countryIdx].photo as string}
+                        alt=""
+                      />
+                    </motion.span>
+                  )}
+                </motion.span>
+              </AnimatePresence>
+            </motion.span>
+          </span>
           {/* "TO PAY" — layout-animated so it overshoots + bounces
               back whenever the chip width changes. */}
           <motion.span
@@ -771,16 +756,12 @@ function HeroRotator() {
             {' '}
             {['TO', 'PAY'].map((word, i) => (
               <Fragment key={word}>
-                <motion.span
-                  initial={BLUR_INITIAL}
-                  animate={BLUR_ANIMATE}
-                  transition={blurTransition(
-                    ROTATOR_START + (5 + i) * ROTATOR_WORD_DELAY,
-                  )}
-                  style={{ display: 'inline-block' }}
+                <span
+                  className="blur-in blur-in--ease-out"
+                  style={rotatorWordDelay(5 + i)}
                 >
                   {word}
-                </motion.span>
+                </span>
                 {i < 1 && ' '}
               </Fragment>
             ))}
@@ -1185,38 +1166,23 @@ function App() {
 
       <section className="hero">
         <div className="hero-heading" ref={headingContainerRef}>
-          <SplitText
-            tag="p"
+          <RiseInChars
             className="eyebrow"
             text="FOR THE UAE REAL ESTATE MARKET"
-            splitType="chars"
-            delay={20}
-            duration={0.9}
-            from={{ opacity: 0, y: 12 }}
-            to={{ opacity: 1, y: 0 }}
-            ease="power3.out"
-            textAlign="center"
-            rootMargin="0px"
-            threshold={0}
+            stagger={20}
           />
           {/* Two-line headline — first part regular, second part bold. */}
-          <BlurText
+          <BlurInWords
             as="h1"
             className="hero-h1 hero-h1--light"
             text="DON'T LOSE CLOSED DEALS"
-            animateBy="words"
-            direction="top"
-            delay={120}
-            stepDuration={0.45}
+            stagger={120}
           />
-          <BlurText
+          <BlurInWords
             as="h1"
             className="hero-h1 hero-h1--bold"
             text="TO A STUCK SWIFT WIRE"
-            animateBy="words"
-            direction="top"
-            delay={260}
-            stepDuration={0.45}
+            stagger={260}
           />
           <HeroRotator />
         </div>

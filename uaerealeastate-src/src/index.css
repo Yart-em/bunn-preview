@@ -217,8 +217,9 @@ p {
   z-index: 1;
 }
 
-/* BlurText wraps each word in a flex layout — center the line(s)
-   so the heading reads centered like the rest of the hero. */
+/* The H1 lines lay their words out in a wrapping flex row
+   (BlurInWords) — center the line(s) so the heading reads centered
+   like the rest of the hero. */
 .hero-heading > h1,
 .hero-heading > p {
   justify-content: center;
@@ -233,6 +234,112 @@ p {
   font-weight: 500;
   color: var(--ink-faint);
   margin: 0 0 18px;
+}
+
+/* ── Hero entrance ─────────────────────────────────────────
+   The eyebrow, both H1 lines and the rotator's words enter with
+   these keyframes (components/HeroEntrance, and HeroRotator in
+   App.tsx). They are CSS rather than gsap / motion so the browser
+   plays them on the compositor, smooth through the main-thread work
+   of the page's start-up. Every value is the one the JS versions
+   were given:
+
+   • Eyebrow (was gsap SplitText): each character rises 12 px → 0
+     and fades in over 0.9 s, 20 ms apart, once its font has loaded.
+     The ease was gsap's power3.out — easeOutQuart, 1 − (1 − t)⁴
+     (gsap's powerN is one degree above its name); cubic-bezier(0.25,
+     1, 0.5, 1) is within 0.6 % of it everywhere. The line clips its
+     own box, so each character slides up out of its bottom edge.
+
+   • Blur-in (was motion: BlurText on the H1, BLUR_ANIMATE on the
+     rotator): blur 10 → 5 → 0 px, opacity 0 → .5 → 1 and y −50 →
+     +5 → 0 px at 0 / 50 / 100 % of 0.9 s. Blur and opacity change
+     evenly across those stops, so two keyframes give the same
+     values; the y overshoot needs three. Two animations, so each
+     takes its own timing function — that reproduces both eases:
+       – H1 lines: linear throughout (BlurText passed t => t).
+       – Rotator: motion's default easeOut (= CSS ease-out) ran over
+         the WHOLE 0.9 s for blur + opacity (one Web Animation each)
+         but over EACH HALF for y (a JS keyframes animation). A CSS
+         timing function applies per keyframe segment, so ease-out
+         on the two-stop fade spans the whole run and on the
+         three-stop drop each half.
+
+   Delays are set inline, per character / word. Fill mode
+   `backwards` holds the start keyframe through the delay; when an
+   animation ends it lets go, and the element's own style is the end
+   keyframe (opacity 1, no filter, no transform), so nothing stays
+   filtered or composited after the entrance. Not `both`: WebKit
+   kept some words painted blurred after a filter animation that
+   went on filling forwards. */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes blur-in-fade {
+  from { opacity: 0; filter: blur(10px); }
+  to   { opacity: 1; filter: blur(0px); }
+}
+@keyframes blur-in-drop {
+  0%   { transform: translateY(-50px); }
+  50%  { transform: translateY(5px); }
+  100% { transform: none; }
+}
+
+/* RiseInChars: an inline-block line that clips its characters
+   (the box SplitText gave it). Words never break inside. */
+.rise-in-chars {
+  display: inline-block;
+  overflow: hidden;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
+  will-change: transform, opacity;
+}
+.rise-in-chars__word {
+  white-space: nowrap;
+}
+/* Parked at the start keyframe until the font is in (.is-playing). */
+.rise-in-chars__char {
+  position: relative;
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(12px);
+}
+.rise-in-chars.is-playing .rise-in-chars__char {
+  opacity: 1;
+  transform: none;
+  animation: rise-in 0.9s cubic-bezier(0.25, 1, 0.5, 1) backwards;
+}
+
+.blur-in-words {
+  display: flex;
+  flex-wrap: wrap;
+}
+.blur-in {
+  display: inline-block;
+  animation:
+    blur-in-fade 0.9s linear backwards,
+    blur-in-drop 0.9s linear backwards;
+}
+.blur-in--ease-out {
+  animation-timing-function: ease-out;
+}
+
+/* Text for screen readers only: in the accessibility tree, painted
+   nowhere, out of the layout — and left out of a copied selection,
+   which already holds the visible copy of the same text. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  user-select: none;
 }
 
 /* Country rotator under the H1 — same font, size, and weight as the
