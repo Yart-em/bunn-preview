@@ -1761,10 +1761,17 @@ h1 {
    visible frosted glass effect.  The shadow is mostly invisible
    (white on white section bg) but its drop-shadow pixels peek
    around the card edges. */
+/* will-change: transform gives the shadow its OWN compositing layer.
+   Without it Safari painted the drop-shadow filter into the same
+   layer as the CurvedLoop marquee that scrolls over it, so every
+   marquee frame re-ran the 32px blur across the whole card (~35 fps
+   in WebKit while this section was on screen). On its own layer the
+   filtered shadow is rasterized once and the marquee repaints alone. */
 .brokers-card__shadow-wrap {
   position: absolute;
   inset: 0;
   filter: drop-shadow(0px 16px 32px rgba(12, 12, 13, 0.10));
+  will-change: transform;
   pointer-events: none;
   z-index: -1;
 }

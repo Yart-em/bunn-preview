@@ -70,11 +70,39 @@
 }
 
 /* ── Shadow on the active slide ──────────────────────────────
-   The drop shadow is now generated INSIDE the SVG (feDropShadow on
-   the clipped card group — see SlideCarousel.tsx) so it traces the
-   real notch silhouette and renders correctly on Safari. No CSS
-   filter here, which previously cast a rectangular shadow under the
-   card on Safari. */
+   Two pre-rendered bitmaps of the card silhouette's drop shadow —
+   flat rect and notch — cross-faded by GSAP in step with the path
+   morph (see renderShadow in SlideCarousel.tsx for why it's not a
+   live SVG/CSS filter: Safari re-rasterized that every morph frame).
+   The box is the old filter region: card viewBox 760 × 483 plus
+   190 / 120.5 units each side, i.e. 1140 × 724 — positioned in % of
+   the slide so it scales with the card. z-index −1 keeps it under
+   the photo inside the slide's own stacking context (the transform
+   makes one). Only the active slide shows a shadow, as before. */
+.sc-shadow {
+  position: absolute;
+  left: calc(-190 / 760 * 100%);
+  top: calc(-120.5 / 483 * 100%);
+  width: calc(1140 / 760 * 100%);
+  height: calc(724 / 483 * 100%);
+  z-index: -1;
+  pointer-events: none;
+}
+.sc-slide:not(.sc-slide--active) .sc-shadow {
+  display: none;
+}
+/* background-image is set inline from JS (the bitmaps for the
+   current breakpoint — see applyShadows). */
+.sc-shadow__rect,
+.sc-shadow__notch {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+.sc-shadow__notch {
+  opacity: 0;
+}
 
 /* ── Dark overlay on non-active slides ─────────────────────── */
 .sc-slide:not(.sc-slide--active) .sc-overlay {

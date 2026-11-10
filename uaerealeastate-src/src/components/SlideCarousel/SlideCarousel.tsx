@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import BorderGlow from '../BorderGlow/BorderGlow';
 import GlareHover from '../GlareHover/GlareHover';
 import { IS_IOS } from '../../lib/platform';
+import { whenIdle } from '../../lib/idle';
 import './SlideCarousel.css';
 
 /* ── Slide data shape ─────────────────────────────────────── */
@@ -168,6 +169,74 @@ const getPaths = () =>
     ? { rect: MOBILE_RECT, notch: MOBILE_NOTCH }
     : { rect: DESKTOP_RECT, notch: DESKTOP_NOTCH };
 
+/* ── Pre-rendered card shadow ─────────────────────────────────
+ * The active card's drop shadow used to be an SVG feDropShadow on
+ * the clipped image group. Safari rasterizes SVG filters on the CPU
+ * and re-ran that one (a 16-unit gaussian over the whole photo) on
+ * every frame the notch path morphed — ~1.1 s of every 3 s cycle —
+ * which held the carousel at ~35 fps in WebKit.
+ *
+ * The shadow only ever has two shapes at rest: flat rectangle and
+ * notch. So each is drawn ONCE into a bitmap (canvas 2D shadow,
+ * same gaussian: shadowBlur = 2 × stdDeviation) and the two bitmaps
+ * cross-fade in step with the morph. Painting a cached bitmap is
+ * cheap in every engine, and the opacity tween costs nothing extra.
+ * Mid-morph the shadow is a blend of the two end shapes instead of
+ * the exact in-between one — at 10% opacity under a 16-unit blur
+ * that is not visible.
+ *
+ * The bitmap covers the old filter region: the 760 × 483 card
+ * viewBox plus ~25% on every side (190 / 120.5 units), drawn at a
+ * quarter pixel per viewBox unit (285 × 181). A 16-unit gaussian has
+ * nothing finer than that in it, so the smooth upscale is invisible
+ * (pixel diff vs the live filter: ≤ 1 level in the shadow band),
+ * and the tiny bitmap keeps the one-off render + PNG encode to ~1 ms.
+ * The .sc-shadow box in SlideCarousel.css is sized to exactly this
+ * region. */
+const SHADOW_PAD_X = 190;
+const SHADOW_PAD_Y = 120.5;
+const SHADOW_W = 760 + SHADOW_PAD_X * 2; // 1140
+const SHADOW_H = 483 + SHADOW_PAD_Y * 2; // 724
+const SHADOW_RES = 0.25; // bitmap px per viewBox unit
+const SHADOW_DY = 16;
+const SHADOW_STD = 16;
+const SHADOW_COLOR = 'rgba(12, 12, 13, 0.1)';
+
+/** Render one silhouette's shadow — the shadow ONLY, also under the
+ *  card — to a PNG data URL. The shape is filled in the left half of
+ *  a double-width canvas with its shadow offset into the right half,
+ *  which is then copied out on its own. With the photo on top, the
+ *  card's anti-aliased rim composites over the full-strength shadow,
+ *  exactly as feDropShadow's "source over shadow" did. (The shape has
+ *  to stay on-canvas: WebKit skips the whole draw, shadow included,
+ *  when the filled shape lies outside the canvas.) A data URL rather
+ *  than a blob: nothing to revoke, and no img-src blob: dependency. */
+function renderShadow(d: string): string | null {
+  const w = SHADOW_W * SHADOW_RES;
+  const h = SHADOW_H * SHADOW_RES;
+  const work = document.createElement('canvas');
+  work.width = w * 2;
+  work.height = h;
+  const ctx = work.getContext('2d');
+  if (!ctx || typeof Path2D === 'undefined') return null;
+  ctx.scale(SHADOW_RES, SHADOW_RES);
+  ctx.translate(SHADOW_PAD_X, SHADOW_PAD_Y);
+  // shadow blur / offsets are in bitmap pixels — the transform doesn't apply
+  ctx.shadowColor = SHADOW_COLOR;
+  ctx.shadowBlur = SHADOW_STD * 2 * SHADOW_RES;
+  ctx.shadowOffsetX = w;
+  ctx.shadowOffsetY = SHADOW_DY * SHADOW_RES;
+  ctx.fillStyle = '#000';
+  ctx.fill(new Path2D(d));
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  const octx = out.getContext('2d');
+  if (!octx) return null;
+  octx.drawImage(work, w, 0, w, h, 0, 0, w, h);
+  return out.toDataURL('image/png');
+}
+
 const ROTATE_MS = 3000;
 
 /* ── Component ────────────────────────────────────────────── */
@@ -179,6 +248,10 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
    * GSAP can morph the path and reveal the button. */
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const btnRefs = useRef<(HTMLDivElement | null)[]>([]);
+  /* The two pre-rendered shadow layers per slide (see renderShadow);
+   * their opacities follow the path morph. */
+  const rectShadowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const notchShadowRefs = useRef<(HTMLDivElement | null)[]>([]);
   /* Track the GSAP timeline per-slide so we can kill it on
    * cleanup / re-trigger without leaking. */
   const tlRefs = useRef<(gsap.core.Timeline | null)[]>([]);
@@ -211,6 +284,34 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
     window.addEventListener('scroll', check, { passive: true });
     return () => window.removeEventListener('scroll', check);
   }, [imagesInView]);
+
+  /* Shadow bitmaps, rendered once per breakpoint (desktop / phone
+   * paths, the same ≤600px split as getPaths) and cached. They're set
+   * straight onto the shadow divs' inline style rather than through
+   * React state or an inherited CSS variable: either of those
+   * re-rendered or re-styled the whole deck (5 slides of glow/glare
+   * subtrees) for what is just two background images — a visible
+   * hitch on mid-range phones. */
+  const shadowCache = useRef<Record<string, [string | null, string | null]>>({});
+  const applyShadows = useCallback(() => {
+    const key = typeof window !== 'undefined' && window.innerWidth <= 600 ? 'm' : 'd';
+    let pair = shadowCache.current[key];
+    if (!pair) {
+      const P = getPaths();
+      pair = [renderShadow(P.rect), renderShadow(P.notch)];
+      shadowCache.current[key] = pair;
+    }
+    const bg = (u: string | null) => (u ? `url("${u}")` : 'none');
+    rectShadowRefs.current.forEach((el) => { if (el) el.style.backgroundImage = bg(pair[0]); });
+    notchShadowRefs.current.forEach((el) => { if (el) el.style.backgroundImage = bg(pair[1]); });
+  }, []);
+
+  /* First render: in an idle slot soon after the deck mounts, long
+   * before it can be on screen. It's ~1 ms of canvas work; done
+   * lazily at the photo-fetch gate instead, it landed on the same
+   * frames as the deck starting up and cost a visible hitch on
+   * mid-range phones. */
+  useEffect(() => whenIdle(applyShadows, 3000), [applyShadows]);
 
   /* ── Run gate ─────────────────────────────────────────────────
    * The deck only animates while it's actually on screen AND the
@@ -272,18 +373,30 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
 
       const P = getPaths();
 
+      const rs = rectShadowRefs.current[idx];
+      const ns = notchShadowRefs.current[idx];
+
       /* Reset to rectangle + button hidden. */
       gsap.set(path, { attr: { d: P.rect } });
       gsap.set(btn, { y: 40, opacity: 0, scale: 0.92 });
+      if (rs && ns) gsap.set([rs, ns], { opacity: (i) => (i ? 0 : 1) });
 
       const tl = gsap.timeline();
 
-      /* 1. Morph shape: rectangle → S-curve notch (0.6 s). */
+      /* 1. Morph shape: rectangle → S-curve notch (0.6 s), with the
+       *    shadow cross-fading rect → notch on the same curve. */
       tl.to(path, {
         attr: { d: P.notch },
         duration: 0.6,
         ease: 'power2.inOut',
       });
+      if (rs && ns) {
+        tl.to([rs, ns], {
+          opacity: (i) => (i ? 1 : 0),
+          duration: 0.6,
+          ease: 'power2.inOut',
+        }, 0);
+      }
 
       /* 2. Button slides up + fades in (bounce-out ease).
        *    Centering is handled by the .sc-btn-dock flexbox
@@ -326,8 +439,11 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
       });
     }
 
-    /* 2. Morph shape: S-curve notch → flat rectangle. */
+    /* 2. Morph shape: S-curve notch → flat rectangle. The shadow
+     *    layers are hidden on non-active slides, but they're tweened
+     *    back too so the next entrance starts from a clean state. */
     if (path) {
+      const at = btn ? 0.25 : 0; // overlap slightly with button exit
       tl.to(
         path,
         {
@@ -335,8 +451,17 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
           duration: 0.5,
           ease: 'power2.inOut',
         },
-        btn ? '-=0.1' : 0, // overlap slightly with button exit
+        at,
       );
+      const rs = rectShadowRefs.current[idx];
+      const ns = notchShadowRefs.current[idx];
+      if (rs && ns) {
+        tl.to([rs, ns], {
+          opacity: (i) => (i ? 0 : 1),
+          duration: 0.5,
+          ease: 'power2.inOut',
+        }, at);
+      }
     }
 
     tlRefs.current[idx] = tl;
@@ -357,6 +482,9 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
     const btn = btnRefs.current[idx];
     if (path) gsap.set(path, { attr: { d: getPaths().rect } });
     if (btn) gsap.set(btn, { y: 40, opacity: 0, scale: 0.92 });
+    const rs = rectShadowRefs.current[idx];
+    const ns = notchShadowRefs.current[idx];
+    if (rs && ns) gsap.set([rs, ns], { opacity: (i) => (i ? 0 : 1) });
   }, []);
 
   useEffect(() => {
@@ -390,12 +518,19 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
   useEffect(() => {
     const onResize = () => {
       const P = getPaths();
+      applyShadows(); // breakpoint may have flipped (cached per side)
       slides.forEach((_, i) => {
         tlRefs.current[i]?.kill();
         tlRefs.current[i] = null;
         const path = pathRefs.current[i];
         if (path) {
           gsap.set(path, { attr: { d: i === activeIdx ? P.notch : P.rect } });
+        }
+        const rs = rectShadowRefs.current[i];
+        const ns = notchShadowRefs.current[i];
+        if (rs && ns) {
+          const on = i === activeIdx ? 1 : 0;
+          gsap.set([rs, ns], { opacity: (k) => (k ? on : 1 - on) });
         }
         const btn = btnRefs.current[i];
         if (btn && i !== activeIdx) {
@@ -405,7 +540,7 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [activeIdx, slides]);
+  }, [activeIdx, slides, applyShadows]);
 
   /* Cleanup all timelines on unmount. */
   useEffect(() => {
@@ -462,6 +597,19 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
               className={`sc-slide${isActive ? ' sc-slide--active' : ''}`}
               style={getSlideStyle(i)}
             >
+              {/* ── Shadow (pre-rendered rect + notch bitmaps,
+                  cross-faded with the morph; active slide only) ── */}
+              <div className="sc-shadow" aria-hidden="true">
+                <div
+                  className="sc-shadow__rect"
+                  ref={(el) => { rectShadowRefs.current[i] = el; }}
+                />
+                <div
+                  className="sc-shadow__notch"
+                  ref={(el) => { notchShadowRefs.current[i] = el; }}
+                />
+              </div>
+
               {/* ── SVG shape (image + clipping) ────────── */}
               <svg
                 className="sc-shape"
@@ -475,47 +623,20 @@ export default function SlideCarousel({ slides }: { slides: SlideData[] }) {
                       d={getPaths().rect}
                     />
                   </clipPath>
-                  {/* Drop shadow generated FROM the clipped card
-                      silhouette (incl. the notch), so the shadow
-                      always matches the actual element rather than a
-                      rectangle underneath. Computed in SVG space so
-                      Safari renders it correctly. The filter lives on
-                      an OUTER <g> (no clip) that wraps the clipped
-                      image — SVG applies a filter BEFORE clipping on
-                      the same element, so nesting keeps the shadow
-                      from being clipped away. */}
-                  <filter
-                    id={`sc-shadow-${i}`}
-                    x="-25%"
-                    y="-25%"
-                    width="150%"
-                    height="150%"
-                    colorInterpolationFilters="sRGB"
-                  >
-                    <feDropShadow
-                      dx="0"
-                      dy="16"
-                      stdDeviation="16"
-                      floodColor="#0c0c0d"
-                      floodOpacity="0.1"
-                    />
-                  </filter>
                 </defs>
 
-                {/* Background image, clipped by the notch path; the
-                    shadow filter wraps the clipped group so it traces
-                    the real silhouette (only on the active slide). */}
-                <g filter={isActive ? `url(#sc-shadow-${i})` : undefined}>
-                  <g clipPath={`url(#sc-clip-${i})`}>
-                    <image
-                      href={imagesInView ? slide.image : undefined}
-                      x="0"
-                      y="0"
-                      width="760"
-                      height="483"
-                      preserveAspectRatio="xMidYMid slice"
-                    />
-                  </g>
+                {/* Background image, clipped by the notch path. Its
+                    shadow is the .sc-shadow layer above — no SVG
+                    filter here (see renderShadow). */}
+                <g clipPath={`url(#sc-clip-${i})`}>
+                  <image
+                    href={imagesInView ? slide.image : undefined}
+                    x="0"
+                    y="0"
+                    width="760"
+                    height="483"
+                    preserveAspectRatio="xMidYMid slice"
+                  />
                 </g>
               </svg>
 
