@@ -12,6 +12,11 @@
 import type { DotsWorkerRequest, DotsWorkerResponse } from './dots.worker';
 import type { GlobeDotData } from './lattice';
 
+/* The lattice reads the mask's red channel and only compares it with
+ * 128 (lattice.ts isLand), so the PNG is stored as 1-bit black land /
+ * white sea at the same 800 × 400: every pixel classifies exactly as
+ * the 8-bit original did (all 320 000 checked), so the globe's dots
+ * are identical — 5 KB instead of 124 KB. */
 const MASK_URL = '/uaerealestate/earth-mask.png';
 
 let loaded: GlobeDotData | null = null;

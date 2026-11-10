@@ -709,8 +709,8 @@ h1 {
      radial-gradient(55% 55% at 80% 65%,
        rgba(122, 88, 255, 0.08) 0%, rgba(122, 88, 255, 0) 70%)
    Safari's renderer holds up the first frames to blur a box that
-   size, so the page stuttered while the hero loaded. hero-glow.png
-   is exactly what Chromium painted for that recipe at the
+   size, so the page stuttered while the hero loaded. hero-glow.webp
+   (lossless, so pixel-for-pixel the PNG it replaced) is exactly what Chromium painted for that recipe at the
    720 × 188 desktop card (box 1152 × 376), padded with the
    blur's bleed: 144 px left/right (20% of the card width) and
    117.5 px top/bottom (62.5% of its height) — hence the inset.
@@ -725,7 +725,7 @@ h1 {
   content: '';
   position: absolute;
   inset: -112.5% -50%;
-  background: url('/uaerealestate/hero-glow.png') no-repeat 0 0 / 100% 100%;
+  background: url('/uaerealestate/hero-glow.webp') no-repeat 0 0 / 100% 100%;
   z-index: -1;
   pointer-events: none;
 }

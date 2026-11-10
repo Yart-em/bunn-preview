@@ -169,14 +169,16 @@ const rotatorWordDelay = (i: number) => ({
 /** Cities cycled in the rotator under the H1. Each city pairs with
  *  a buyer-portrait that swaps in alongside the city name; the
  *  catch-all "52+ countries" entry has no portrait — it's a sweep
- *  rather than a single buyer. */
+ *  rather than a single buyer. The portraits are 180 × 120 WebP:
+ *  the chip shows them at most ~55 × 37 CSS px, so that is ≥ 3× its
+ *  size on any screen (they were 240 × 160 PNGs, ~74 KB together). */
 const COUNTRIES: { name: string; photo: string | null }[] = [
-  { name: 'China', photo: '/uaerealestate/portraits/beijing.png' },
-  { name: 'Ukraine', photo: '/uaerealestate/portraits/kyiv.png' },
-  { name: 'Nigeria', photo: '/uaerealestate/portraits/lagos.png' },
-  { name: 'Pakistan', photo: '/uaerealestate/portraits/karachi.png' },
-  { name: 'Lebanon', photo: '/uaerealestate/portraits/beirut.png' },
-  { name: 'Brazil', photo: '/uaerealestate/portraits/rio.png' },
+  { name: 'China', photo: '/uaerealestate/portraits/beijing.webp' },
+  { name: 'Ukraine', photo: '/uaerealestate/portraits/kyiv.webp' },
+  { name: 'Nigeria', photo: '/uaerealestate/portraits/lagos.webp' },
+  { name: 'Pakistan', photo: '/uaerealestate/portraits/karachi.webp' },
+  { name: 'Lebanon', photo: '/uaerealestate/portraits/beirut.webp' },
+  { name: 'Brazil', photo: '/uaerealestate/portraits/rio.webp' },
   { name: '52+ countries', photo: null },
 ];
 const COUNTRY_ROTATE_MS = 2200;
@@ -1334,17 +1336,17 @@ function App() {
                   <div className="compliance__logos">
                     <img
                       className="compliance__logo compliance__logo--dld"
-                      src="/uaerealestate/logos/images (5) 1.png"
+                      src="/uaerealestate/logos/dld.webp"
                       alt="Dubai Land Department"
                     />
                     <img
                       className="compliance__logo compliance__logo--cb"
-                      src="/uaerealestate/regulators/cb-uae.png"
+                      src="/uaerealestate/regulators/cb-uae.webp"
                       alt="Central Bank of the UAE"
                     />
                     <img
                       className="compliance__logo compliance__logo--vara"
-                      src="/uaerealestate/regulators/vara.png"
+                      src="/uaerealestate/regulators/vara.webp"
                       alt="VARA — Virtual Assets Regulatory Authority"
                     />
                   </div>

@@ -14,8 +14,8 @@
  * illustration remains.
  *
  * The section sits at the very bottom of a long page, so its
- * ~900 KB source PNG is only fetched + decoded (and the dots only
- * built) once the section nears the viewport — none of that work
+ * source PNG is only fetched + decoded (and the dots only built)
+ * once the section nears the viewport — none of that work
  * competes with the hero's first seconds.
  *
  * Mirrors the hero-globe DotSphere gather: per-dot delay,
@@ -29,7 +29,18 @@ import BlurText from '../BlurText/BlurText';
 import './CityScape.css';
 
 /* ── Tunables ─────────────────────────────────────────────── */
-const SRC_PATH = '/uaerealestate/photos/dubai-cityscape-v3.png';
+/* The source is never shown, only sampled: buildDots asks of each
+ * pixel just one yes/no question (isInk: alpha ≥ 50 and luminance
+ * < BRIGHTNESS_THRESHOLD). So the file is that answer and nothing
+ * else — a 1-bit black/white PNG at the original 880 × 588, black
+ * where the old full-colour dubai-cityscape-v3.png (888 KB) was
+ * ink as Chromium decoded it. Every pixel gives the same answer as
+ * before, so the dot field is identical, for 23 KB. Pure black and
+ * white also survive any colour conversion an engine applies (WebKit
+ * read 16 pixels of the old PNG differently; now both engines agree).
+ * If the artwork changes, threshold it the same way rather than
+ * shipping the colour PNG. */
+const SRC_PATH = '/uaerealestate/photos/dubai-cityscape-mask.png';
 /* Start fetching the source PNG once the section's top is within
  * this many viewport heights of the top of the screen (≈ 1.5
  * screens below the fold) — early enough that it is decoded and

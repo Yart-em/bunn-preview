@@ -152,42 +152,46 @@ const BUYER_PERSONAS: InfiniteMenuItem[] = [
 ]; */
 
 /** Slide carousel data — each slide pairs a buyer name with
- *  their cross-border payment pain point and a country tag. */
+ *  their cross-border payment pain point and a country tag. The
+ *  photos stay 1280 × 955: the desktop card is 760 CSS px wide, i.e.
+ *  1520 device px on a 2× screen, so there is nothing to trim. They
+ *  are WebP at quality 85 instead of ~q93 JPEG (1.4 MB → 0.6 MB for
+ *  the five; PSNR ≥ 39 dB against the JPEGs, not visible at 1:1). */
 const CAROUSEL_SLIDES: SlideData[] = [
   {
     label: 'FOR SOFIA',
     subtitle:
       'A 2.3% FX spread plus a fresh source-of-funds review',
     country: 'Portugal',
-    image: '/uaerealestate/rotator/sofia.jpg',
+    image: '/uaerealestate/rotator/sofia.webp',
   },
   {
     label: 'FOR DMITRY',
     subtitle:
       "Passport triggers a 3–6-week manual sanctions review at his Cyprus bank",
     country: 'Russia with Cyprus resi',
-    image: '/uaerealestate/rotator/dmitry.jpg',
+    image: '/uaerealestate/rotator/dmitry.webp',
   },
   {
     label: 'FOR ARJUN',
     subtitle:
       "RBI’s LRS caps at $250,000 and loses 20% TCS above ₹10 lakh",
     country: 'India',
-    image: '/uaerealestate/rotator/arjun.jpg',
+    image: '/uaerealestate/rotator/arjun.webp',
   },
   {
     label: 'FOR WEI',
     subtitle:
       'SAFE caps him at $50,000 a year and bars property abroad as an approved purpose',
     country: 'China',
-    image: '/uaerealestate/rotator/wei.jpg',
+    image: '/uaerealestate/rotator/wei.webp',
   },
   {
     label: 'FOR HASSAN',
     subtitle:
       'Bank queueing outbound real-estate transfers 30 to 60 days',
     country: 'Egypt',
-    image: '/uaerealestate/rotator/hassan.jpg',
+    image: '/uaerealestate/rotator/hassan.webp',
   },
 ];
 
@@ -514,17 +518,17 @@ function LogosSection() {
         <span className="logos-group__label">Fully Compliant</span>
         <div className="logos-group__row">
           <img
-            src="/uaerealestate/regulators/vara.png"
+            src="/uaerealestate/regulators/vara.webp"
             alt="VARA — Virtual Assets Regulatory Authority"
             className="logos-group__logo"
           />
           <img
-            src="/uaerealestate/regulators/cb-uae.png"
+            src="/uaerealestate/regulators/cb-uae.webp"
             alt="Central Bank of the UAE"
             className="logos-group__logo"
           />
           <img
-            src="/uaerealestate/logos/images (5) 1.png"
+            src="/uaerealestate/logos/dld.webp"
             alt="Dubai Land Department"
             className="logos-group__logo"
           />
