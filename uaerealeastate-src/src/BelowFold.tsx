@@ -38,6 +38,7 @@ const BrokersCoin = lazyOrNothing(
 import CityScape from './components/CityScape/CityScape';
 import { BELOW_FOLD_STAGES, type BelowFoldStage } from './belowFoldStages';
 import { lazyOrNothing } from './lib/chunks';
+import { ITEM_STACK_DISTANCE_PX, STACK_POSITION_PCT } from './lib/scrollLayout';
 
 /* ── FAQ items ──────────────────────────────────────────── */
 const FAQ_ITEMS: { q: string; a: string }[] = [
@@ -222,9 +223,9 @@ function HowSection() {
             ? 295
             : 590
         }
-        itemStackDistance={20}
+        itemStackDistance={ITEM_STACK_DISTANCE_PX}
         baseScale={0.8}
-        stackPosition="10%"
+        stackPosition={`${STACK_POSITION_PCT}%`}
         flyAwayAfter={400}
         flyAwayExcludeLast
       >
