@@ -91,6 +91,26 @@ const WHEEL_COOLDOWN_MS = 150;
 const KEY_LINE_PX = 40;
 const KEY_PAGE_VH = 0.875;
 
+/* ── Rotation ──
+ * Turning the phone re-lays the page out (and in landscape it is no
+ * phone: App.tsx swaps in the free scroll), so on the way back the
+ * scroll position can land between two ideas. Once the layout has
+ * settled for SETTLE_MS, an idle page goes back to the idea it last
+ * rested on — or, if the page has moved since (the visitor scrolled
+ * in landscape, a link scrolled it), to the nearest one, but never
+ * one more than a screen away. A width change without leaving phone
+ * mode (split screen) always uses the nearest. */
+const SETTLE_MS = 600;
+
+/* Kept across installs (the model is removed in landscape). */
+/** The rest the last transition arrived at (null = not known, or
+ *  the page has moved off it since). */
+let lastRest: { label: string; y: number } | null = null;
+/** The visitor scrolled while the model was not installed. */
+let movedWhileAway = false;
+let installedBefore = false;
+let stopAwayWatch: (() => void) | null = null;
+
 /** Two rests closer than this (× viewport height) are one rest. */
 const MERGE_VH = 0.2;
 /** The rest list is re-measured at most this often (ms). */
@@ -287,6 +307,10 @@ interface TouchState {
 
 /** Installs the model on the shared Lenis; returns its uninstall. */
 export function installStepScroll(lenis: Lenis): () => void {
+  stopAwayWatch?.();
+  stopAwayWatch = null;
+  const reinstall = installedBefore;
+  installedBefore = true;
   const reducedMotion = window.matchMedia(
     '(prefers-reduced-motion: reduce)',
   );
@@ -326,6 +350,10 @@ export function installStepScroll(lenis: Lenis): () => void {
       if (!anim || anim.id !== id) return;
       anim = null;
       wheelQuietUntil = performance.now() + WHEEL_COOLDOWN_MS;
+      lastRest =
+        restMap().rests.find((r) => Math.abs(r.y - lenis.scroll) <= AT_REST_PX) ??
+        null;
+      movedWhileAway = false;
       if (queued) {
         const d = queued;
         queued = 0;
@@ -627,6 +655,43 @@ export function installStepScroll(lenis: Lenis): () => void {
   };
   window.addEventListener('touchcancel', onTouchCancel, { passive: true });
 
+  /** After a rotation: back onto an idea (see SETTLE_MS). */
+  const settle = (useLast: boolean) => {
+    if (touch || anim || lenis.isScrolling || popupOpen()) return;
+    mapCache = null;
+    const { rests } = restMap();
+    const cur = lenis.scroll;
+    if (zoneAt(cur) || rests.some((r) => Math.abs(r.y - cur) <= AT_REST_PX))
+      return;
+    let target =
+      useLast && !movedWhileAway && lastRest
+        ? rests.find((r) => r.label === lastRest!.label)
+        : undefined;
+    if (!target) {
+      let best = rests[0];
+      for (const r of rests)
+        if (Math.abs(r.y - cur) < Math.abs(best.y - cur)) best = r;
+      if (Math.abs(best.y - cur) > window.innerHeight) return;
+      target = best;
+    }
+    animateTo(target.y, Math.sign(target.y - cur), false);
+  };
+  let settleTimer = 0;
+  const settleSoon = (useLast: boolean) => {
+    clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(() => settle(useLast), SETTLE_MS);
+  };
+  /* Width only: the height changes whenever the browser's toolbar
+   * shows or hides, and that must never move the page. */
+  let width = window.innerWidth;
+  const onResize = () => {
+    if (window.innerWidth === width) return;
+    width = window.innerWidth;
+    settleSoon(false);
+  };
+  window.addEventListener('resize', onResize);
+  if (reinstall) settleSoon(true);
+
   const onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || popupOpen())
       return;
@@ -676,6 +741,25 @@ export function installStepScroll(lenis: Lenis): () => void {
 
   return () => {
     lenis.options.virtualScroll = undefined;
+    clearTimeout(settleTimer);
+    window.removeEventListener('resize', onResize);
+    /* Still on the last idea? (A link or a script may have moved the
+     * page without a transition.) */
+    if (lastRest && (anim || Math.abs(lenis.scroll - lastRest.y) > AT_REST_PX))
+      lastRest = null;
+    /* Until the model is back, any scroll the visitor makes means the
+     * last idea is no longer where they are. */
+    movedWhileAway = false;
+    const moved = () => {
+      movedWhileAway = true;
+    };
+    const evs = ['touchstart', 'wheel', 'keydown'] as const;
+    for (const ev of evs)
+      window.addEventListener(ev, moved, { passive: true, capture: true });
+    stopAwayWatch = () => {
+      for (const ev of evs)
+        window.removeEventListener(ev, moved, { capture: true });
+    };
     window.removeEventListener('touchcancel', onTouchCancel);
     window.removeEventListener('keydown', onKey);
     /* A transition still running finishes on its own; nothing
