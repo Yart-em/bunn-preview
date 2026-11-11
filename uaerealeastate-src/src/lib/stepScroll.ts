@@ -389,7 +389,14 @@ export function installStepScroll(lenis: Lenis): () => void {
 
   const release = (t: TouchState, v: number) => {
     lenis.isTouching = false;
-    if (t.axis === 'h') return; // sideways: the page never moved
+    if (t.axis === 'h') {
+      /* Sideways (or a pinch): the page never moved — but a
+       * transition this touch stopped still has to arrive, or the
+       * page would rest between two ideas. */
+      if (t.pending != null)
+        animateTo(t.pending, Math.sign(t.pending - lenis.scroll), true);
+      return;
+    }
     if (t.zone) {
       /* Inside a free zone: a bounded coast that stays in the zone;
        * a slow release just leaves the page where the finger did. */
