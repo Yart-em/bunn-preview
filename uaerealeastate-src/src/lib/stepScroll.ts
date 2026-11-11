@@ -86,6 +86,10 @@ const WHEEL_GAP_MS = 180;
 /** Wheel input is ignored this long after a transition ends, so the
  *  tail of the gesture that started it can't start another. */
 const WHEEL_COOLDOWN_MS = 150;
+/** Inside a free zone: an arrow key scrolls a line, PageUp/Down and
+ *  Space this much of a screen (the browser's own amounts). */
+const KEY_LINE_PX = 40;
+const KEY_PAGE_VH = 0.875;
 
 /** Two rests closer than this (× viewport height) are one rest. */
 const MERGE_VH = 0.2;
@@ -643,11 +647,27 @@ export function installStepScroll(lenis: Lenis): () => void {
     }
     if (!dir) return;
     if (!anim) {
-      /* inside a free zone the arrow keys scroll as usual */
-      const z = zoneAt(lenis.scroll);
-      const cur = lenis.scroll;
-      if (z && !((dir > 0 && cur >= z.end - 2) || (dir < 0 && cur <= z.start + 2)))
+      /* Inside a free zone the keys scroll by their usual amounts —
+       * an arrow a line, PageUp/Down and Space most of a screen — but
+       * never out of the zone (the browser's own scroll would cross
+       * its edge and stop between two ideas); at the edge they step. */
+      const z = zoneAt(lenis.targetScroll);
+      const cur = lenis.targetScroll;
+      if (z && !((dir > 0 && cur >= z.end - 2) || (dir < 0 && cur <= z.start + 2))) {
+        e.preventDefault();
+        const by = e.key.startsWith('Arrow') ? KEY_LINE_PX : KEY_PAGE_VH * window.innerHeight;
+        lenis.scrollTo(clamp(z.start, cur + dir * by, z.end), {
+          programmatic: false,
+          ...(reducedMotion.matches
+            ? { immediate: true }
+            : {
+                lerp: lenis.options.lerp,
+                duration: lenis.options.duration,
+                easing: lenis.options.easing,
+              }),
+        });
         return;
+      }
     }
     e.preventDefault();
     request(dir, false);
