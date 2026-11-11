@@ -564,6 +564,26 @@ export function installStepScroll(lenis: Lenis): () => void {
       popupY = y;
       return false;
     }
+    /* Pinch-zoom stays the browser's (low vision): a second finger
+     * hands the gesture over untouched — the page itself doesn't
+     * step, and on release it goes back to where the touch started
+     * (or on to where an interrupted transition was heading). While
+     * the page is zoomed in, one finger pans the zoomed view natively
+     * too; stepping resumes once it is zoomed back out. */
+    if (e.type === 'touchstart' || e.type === 'touchmove') {
+      const multi = ((e as TouchEvent).touches?.length ?? 1) > 1;
+      if (multi || (window.visualViewport?.scale ?? 1) > 1.01) {
+        if (touch && multi) {
+          if (
+            touch.pending == null &&
+            Math.abs(lenis.targetScroll - touch.start) > 1
+          )
+            touch.pending = touch.start;
+          touch.axis = 'h';
+        } else if (!multi) touch = null;
+        return false;
+      }
+    }
     let d: number | null;
     switch (e.type) {
       case 'touchstart':
